@@ -1,0 +1,66 @@
+################################################################################
+RECOMMENDED SOFTWARE HSM FOR TI SOC DEVELOPMENT
+################################################################################
+
+This document summarizes the requirements for a software HSM solution
+during the development and testing phases for a Texas Instruments SoC
+reference board implementation, and recommends the most suitable option
+based on those needs.
+
+================================================================================
+USER REQUIREMENTS
+================================================================================
+
+The key requirements for the software HSM solution are:
+
+1. Target Platform: Texas Instruments SoC reference board implementation.
+2. Development Stage: Primarily for development and testing.
+3. Cost-Effectiveness: No additional financial outlay for implementing a
+secure solution during development and testing stages.
+4. Hardware HSM Migration: Easy transfer to a production-grade hardware
+HSM solution with minimum or no effort.
+
+================================================================================
+RECOMMENDED SOLUTION: PKCS#11-BASED SOFTWARE HSM (E.G., SOFTHSM)
+================================================================================
+
+Based on the analysis of various software HSM types from
+2-software-hsm-types.txt, a PKCS#11-Based Software HSM, such as SoftHSM,
+is the ideal choice for these requirements.
+
+Justification:
+-------------
+
+1.  Cost-Effectiveness (No Additional Money):
+   - Free and Open-Source: Solutions like SoftHSM are entirely free
+     and open-source, eliminating any upfront purchase costs or
+     ongoing licensing fees during development and testing.
+
+2.  Easy Transfer to Hardware HSM:
+   - Standardized API: PKCS#11 is a widely adopted,
+     platform-independent API standard for cryptographic tokens. Most
+     commercial hardware HSMs are PKCS#11 compliant.
+   - Seamless Migration: By developing and testing against the PKCS#11
+     interface using SoftHSM, the application code can interact with a
+     production hardware HSM (also PKCS#11 compliant) with minimal or
+     no code changes. The transition primarily involves configuring the
+     application to load the hardware HSM's PKCS#11 library instead of
+     SoftHSM's.
+
+3.  Suitability for Development and Testing:
+   - Prototyping and Testing: PKCS#11 software HSMs are specifically
+     recommended for development and testing workflows as they provide
+     a functional environment for building and validating
+     cryptographic operations before deployment to a more secure and
+     costly hardware solution.
+
+While the Texas Instruments SoC itself may possess integrated hardware
+security features (which would be leveraged by "Embedded Software HSM
+Libraries" or potentially TPM-backed solutions if a TPM is present),
+these do not offer the same direct and standardized migration path to an
+external, dedicated hardware HSM as a PKCS#11 software implementation
+provides.
+
+Therefore, for projects aiming for a cost-free development and testing
+phase with a clear path to hardware HSM integration, SoftHSM is the most
+appropriate software HSM solution.
