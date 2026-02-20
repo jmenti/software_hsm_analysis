@@ -89,13 +89,6 @@ This repository contains an analysis of Software Hardware Security Modules (HSMs
     - 5.2.3 NSS (Network Security Services)
     - 5.2.4 Hardware HSM Vendors
   - 5.3 PKCS#11 Best Practices
-  - 5.4 Setting Up SoftHSM
-    - 5.4.1 Installation (Debian/Ubuntu)
-    - 5.4.2 Configuration
-    - 5.4.3 Initialize Token
-    - 5.4.4 List Tokens
-    - 5.4.5 Generate Key Pair
-    - 5.4.6 Test with OpenSSL
 - **6. COMPARISONS AND ECOSYSTEM**
   - 6.1 PKCS#11 vs Other Standards
     - 6.1.1 PKCS#11 vs KMIP
@@ -105,3 +98,70 @@ This repository contains an analysis of Software Hardware Security Modules (HSMs
   - 6.2 PKCS#11 URI Scheme
   - 6.3 Limitations of PKCS#11
   - 6.4 Learning Resources
+
+### 5-Understanding SoftHSMv2
+- **1. WHAT IS SOFTHSMV2?**
+- **2. SOFTHSMV2 ORIGINS**
+  - 2.1 Age and History
+  - 2.2 Development and Maintenance
+- **3. HOW IT WORKS**
+  - 3.1 The PKCS#11 Interface
+  - 3.2 Library Interaction
+  - 3.3 Software Emulation
+  - 3.4 Secure Storage (Token)
+  - 3.5 Documentation
+- **4. REAL-WORLD USE CASE: DEVELOPMENT AND TESTING**
+  - 4.1 The Production Requirement
+  - 4.2 The Development Challenge
+  - 4.3 The SoftHSMv2 Solution
+  - 4.4 The Transition to Production
+- **5. AVAILABLE WRAPPERS (LANGUAGE INTEGRATIONS)**
+  - 5.1 Python
+  - 5.2 Java
+  - 5.3 Go
+  - 5.4 C# (.NET)
+  - 5.5 Node.js (JavaScript/TypeScript)
+- **6. UNDERSTANDING KEY PAIRS**
+  - 6.1 What do key pairs consist of?
+  - 6.2 Key pair usecase
+  - 6.3 Why generate in SoftHSMv2 (or any HSM)?
+- **7. POSSIBLE CRYPTOGRAPHIC & ADMINISTATIVE ACTIONS USING SOFTWARE HSM**
+  - 7.1 Generate Cryptographic Keys
+  - 7.2 Securely Store Keys and Certificates
+  - 7.3 Perform Cryptographic Operations
+  - 7.4 Manage Certificates
+  - 7.5 Administrative Tasks (using `softhsm2-util` and `pkcs11-tool`)
+- **8. THE PKCS#11 TOOL**
+  - 8.1 Origin
+  - 8.2 How it is a Client of SoftHSMv2
+  - 8.3 Why We Need It
+  - 8.4 Documentation
+- **9. ANALYZING THE SOFTHSM2 PACKAGE (UBUNTU)**
+  - 9.1 Core Library
+  - 9.2 Utility Tool
+  - 9.3 Configuration Files
+  - 9.4 Token Location
+  - 9.5 Purpose
+  - 9.6 Integration
+  - 9.7 Documentation
+- **10. GETTING STARTED ON UBUNTU HOST**
+  - 10.1 Prerequisites: Install pkcs11-tool
+  - 10.2 SoftHSMv2 Installation
+  - 10.3 Configuration
+  - 10.4 Initialize Token
+  - 10.5 Token location
+  - 10.6 Generate Key Pair
+  - 10.7 List Tokens
+- **11. Digital Signing a document example**
+  - 11.1: Step 1: Create a simple test document
+  - 11.2: Step2: Sign the document with your private key
+  - 11.3: Step 3: Verify the signature with your public key
+- **12. Encryption and decryption example (Python)**
+  - 12.1. Prerequisites:
+  - 12.2. How PyKCS11 Works:
+  - 12.3. General Implementation Steps (Python Script)
+  - 12.4. Step by step example
+    - 12.4.1. Create the plaintext message file
+    - 12.4.2. Run the encryption script
+    - 12.4.3. Run the decryption script
+    - 12.4.4. Verify the decrypted content

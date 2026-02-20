@@ -1,0 +1,706 @@
+################################################################################
+UNDERSTANDING SOFTHSMV2
+A Deep Dive into the Software-Based HSM
+################################################################################
+
+================================================================================
+1. WHAT IS SOFTHSMV2?
+================================================================================
+
+SoftHSMv2 is a software-based Hardware Security Module (HSM). In essence, it's
+a piece of software that emulates the functionality of a physical HSM device.
+It is an open-source implementation of the PKCS#11 standard, which is a widely
+adopted API for interacting with cryptographic hardware.
+
+Its primarily used for development, testing, and learning purposes, allowing
+developers to build and test applications that require HSM-like capabilities
+without the cost and complexity of a physical device.
+
+================================================================================
+2. SOFTHSMV2 ORIGINS
+================================================================================
+
+2.1 Age and History
+--------------------
+
+SoftHSMv2 originated from the OpenDNSSEC project and has been in development
+for many years, with v2 being a more secure and modern successor to v1. The
+latest release, v2.7.0, was in January 2026, showing that the project is
+still under active development.
+
+2.2 Development and Maintenance
+--------------------------------
+
+- Initial Developers: Staff from IIS (the .se registry) and SURFnet.
+- Project Origin: Started as a component of the OpenDNSSEC project.
+- Maintainers: NLnet Labs has played a significant role in maintenance,
+  reviewing contributions and fixing bugs.
+
+================================================================================
+3. HOW IT WORKS
+================================================================================
+
+3.1 The PKCS#11 Interface
+--------------------------
+
+SoftHSMv2 provides a standard PKCS#11 interface to applications. This means
+your application communicates with SoftHSMv2 using a standardized set of
+commands for cryptographic operations, just as it would with a hardware HSM.
+
+3.2 Library Interaction
+------------------------
+
+Instead of your application talking to a physical device, it links against the
+SoftHSMv2 library (e.g., `libsofthsm2.so` on Linux). When your application
+needs to perform a cryptographic operation (like generating a key or signing
+data), it makes a call to the PKCS#11 API.
+
+3.3 Software Emulation
+-----------------------
+
+The SoftHSMv2 library receives this call and performs the requested
+cryptographic operation entirely in software.
+
+3.4 Secure Storage (Token)
+---------------------------
+
+It stores cryptographic keys and other sensitive objects in a "token," which in
+the case of SoftHSMv2, is a set of encrypted files on the local disk. This
+emulates the secure storage of a hardware HSM.
+
+3.5 Documentation
+------------------
+
+- PKCS#11 Standard Documentation (via OpenDNSSEC SoftHSMv2):
+  https://www.opendnssec.org/softhsm/
+- SoftHSMv2 GitHub Repository: https://github.com/opendnssec/SoftHSMv2
+
+================================================================================
+4. REAL-WORLD USE CASE: DEVELOPMENT AND TESTING
+================================================================================
+
+SoftHSMv2 is primarily used during the development and testing phases of secure
+applications that will eventually use a hardware HSM in production.
+
+Consider a company building a system for signing software updates.
+
+4.1 The Production Requirement
+-------------------------------
+
+In production, the application must use a highly secure, tamper-proof
+hardware HSM to protect the signing keys. These hardware devices are often very
+expensive and complex to manage.
+
+4.2 The Development Challenge
+------------------------------
+
+Developers need to write and test code that interacts with an HSM. Giving every
+developer a hardware HSM would be too expensive and would slow down the
+development process.
+
+4.3 The SoftHSMv2 Solution
+---------------------------
+
+Developers install SoftHSMv2 on their laptops. It acts exactly like a hardware
+HSM from the application's perspective because it implements the same standard
+PKCS#11 API. This provides several benefits:
+
+- Cost-Effective: It's free, eliminating the need for expensive hardware
+  during development.
+- Fast & Flexible: It's quick to install and configure on any machine.
+- Consistent: Developers write their code once against the standard API.
+
+4.4 The Transition to Production
+---------------------------------
+
+When the application is ready to go live, the company can deploy a real
+hardware HSM. Because the application was built using the standard PKCS#11 API,
+no code changes are needed. Only a configuration setting is changed to point
+the application to the hardware HSM's PKCS#11 library instead of the SoftHSMv2
+library.
+
+================================================================================
+5. AVAILABLE WRAPPERS (LANGUAGE INTEGRATIONS)
+================================================================================
+
+Wrappers allow you to interact with SoftHSMv2 from various programming
+languages. Here are some of the most common:
+
+5.1 Python
+-----------
+- Wrappers: `python-pkcs11`, `PyKCS11`
+- Use Cases: Web backends (Django, Flask), automation scripts, and general
+  backend applications.
+
+5.2 Java
+---------
+- Wrappers: `JCPROV`, `IAIK PKCS#11 Wrapper`, various others on GitHub.
+- Use Cases: Enterprise systems, Android apps, and any application using
+  the Java Cryptography Architecture (JCA).
+
+5.3 Go
+-------
+- Wrappers: `miekg/pkcs11`, `cryptogarageinc/pkcs11`.
+- Use Cases: High-performance network services, cloud-native tools, and
+  command-line interfaces.
+
+5.4 C# (.NET)
+--------------
+- Wrappers: `Pkcs11Interop`.
+- Use Cases: Windows-based applications and ASP.NET web services.
+
+5.5 Node.js (JavaScript/TypeScript)
+------------------------------------
+- Wrappers: `pkcs11js`, `Graphene`.
+- Use Cases: Web servers and other server-side JavaScript applications.
+
+================================================================================
+6. UNDERSTANDING KEY PAIRS
+================================================================================
+
+You need to generate a key pair because it is fundamental to many cryptographic
+operations, especially in public-key (asymmetric) cryptography.
+
+6.1 What do key pairs consist of?
+----------------------------------
+
+A key pair consists of two mathematically linked keys:
+- Public Key: Meant to be shared widely. Anyone can have it.
+- Private Key: Must be kept secret and secure. Only the owner should have
+  access to it.
+
+6.2 Key pair usecase
+---------------------
+
+- Encryption/Decryption: Someone can encrypt a message using your **public
+  key**, and only you, with your corresponding **private key**, can decrypt
+  and read that message.
+
+- Digital Signatures: You can create a digital signature using your
+  **private key** to prove that you sent a message or that a document hasn't
+  been tampered with. Anyone can then verify this signature using your
+  **public key**.
+
+6.3 Why generate in SoftHSMv2 (or any HSM)?
+-------------------------------------------
+
+The entire purpose of an HSM (even a software one like SoftHSMv2) is to
+provide a highly secure environment for generating, storing, and using
+private keys. Key benefits include:
+- Protection of the Private Key: Reduces the risk of theft or compromise.
+- Non-Extractability: Private keys can be configured to never leave the
+  HSM, with all operations happening internally.
+- Secure Generation: Ensures keys are generated using strong randomness.
+- Compliance: Meets security regulations requiring keys to be generated
+  and stored within an HSM.
+
+================================================================================
+7. POSSIBLE CRYPTOGRAPHIC & ADMINISTATIVE ACTIONS USING SOFTWARE HSM
+================================================================================
+
+With your initialized SoftHSMv2 tokens, you can perform a variety of
+cryptographic and administrative tasks, leveraging the capabilities of a
+software-based Hardware Security Module (HSM).
+
+7.1 Generate Cryptographic Keys
+--------------------------------
+
+Create different types of cryptographic keys (e.g., RSA, ECC, AES, HMAC)
+directly within the token. This ensures the keys are "born" inside a secure
+boundary (even if software-emulated).
+
+7.2 Securely Store Keys and Certificates
+-----------------------------------------
+
+Tokens act as secure containers for your private keys and certificates.
+Private keys, especially, can be marked as "never extractable," meaning they
+cannot be copied out of the token in plain text.
+
+7.3 Perform Cryptographic Operations
+-------------------------------------
+
+Your applications can instruct the token to perform cryptographic operations
+using the keys stored within it. The sensitive private key never leaves the
+token's secure boundary for these operations.
+- Digital Signing: Sign data, documents, or transactions using a private
+  key.
+- Signature Verification: Verify digital signatures using the corresponding
+  public key.
+- Data Encryption/Decryption: Encrypt data with a public or symmetric key,
+  and decrypt it with the corresponding private or symmetric key.
+- Key Wrapping/Unwrapping: Securely exchange keys by encrypting them with
+  another key (a Key Encryption Key, KEK) that is also protected by an HSM.
+
+7.4 Manage Certificates
+------------------------
+
+Store X.509 certificates and associate them with the corresponding keys.
+
+7.5 Administrative Tasks (using `softhsm2-util` and `pkcs11-tool`)
+-------------------------------------------------------------------
+
+- Initialize or re-initialize tokens.
+- Set and change User PINs and Security Officer (SO) PINs.
+- List all available slots, tokens, and the cryptographic objects (keys,
+  certificates, data) stored within them.
+- Delete specific objects or entire tokens when they are no longer needed.
+
+================================================================================
+8. THE PKCS#11 TOOL
+================================================================================
+
+The `pkcs11-tool` is a command-line utility for interacting with PKCS#11
+modules, such as SoftHSMv2. It is not part of SoftHSMv2 itself, but rather comes
+from the **OpenSC project**.
+
+8.1 Origin
+-----------
+
+The `pkcs11-tool` by OpenSC project, which focuses on drivers and utilities for
+smart cards and other cryptographic tokens.
+
+8.2 How it is a Client of SoftHSMv2
+------------------------------------
+
+The `pkcs11-tool` is a generic client that can communicate with any PKCS#11
+compliant library. When you execute a command like:
+
+$ pkcs11-tool --module /usr/lib/softhsm/libsofthsm2.so ...
+
+you are explicitly telling `pkcs11-tool` to load the SoftHSMv2 shared library
+`libsofthsm2.so` and use it as the PKCS#11 provider for that specific
+operation. It uses the standard PKCS#11 API to send commands to SoftHSMv2.
+
+8.3 Why We Need It
+-------------------
+
+While applications can generate keys programmatically through PKCS#11 API
+bindings, `pkcs11-tool` is essential for:
+- Command-Line Administration: Performing quick administrative tasks like
+  initializing tokens, listing slots/tokens, or generating keys from the
+  command line without writing code.
+- Testing and Debugging: Verifying that a PKCS#11 module (like SoftHSMv2)
+  is correctly installed and functioning as expected. It's a quick way to
+  test basic operations.
+- Scripting: Automating basic setup and testing procedures in scripts.
+
+8.4 Documentation
+------------------------
+
+- `pkcs11-tool` man page:
+  https://man7.org/linux/man-pages/man1/pkcs11-tool.1.html
+
+================================================================================
+9. ANALYZING THE SOFTHSM2 PACKAGE (UBUNTU)
+================================================================================
+
+The `softhsm2` package in Ubuntu provides the open-source software
+implementation of a Cryptographic Token Interface (PKCS#11) module.
+
+9.1 Core Library
+-----------------
+
+It primarily installs the `SoftHSMv2 shared library` (e.g., `libsofthsm2.so`).
+This is the actual software component that implements the PKCS#11 standard,
+allowing applications to perform cryptographic operations as if they were
+interacting with a hardware HSM.
+
+9.2 Utility Tool
+-----------------
+
+It includes the `softhsm2-util` command-line tool. This utility is
+essential for managing SoftHSMv2 tokens, such as:
+- Initializing new tokens.
+- Setting Security Officer (SO) and User PINs.
+- Listing available slots and their token information.
+
+9.3 Configuration Files
+------------------------
+
+It sets up the default **configuration file**, typically located at
+`/etc/softhsm/softhsm2.conf`. This file allows you to customize settings like
+the directory where SoftHSMv2 stores its encrypted token data
+`directories.tokendir` and the verbosity of its logs `log.level`.
+
+9.4 Token Location
+-------------------
+
+The location of these encrypted token files is defined in the SoftHSMv2
+configuration file, typically `/etc/softhsm/softhsm2.conf`. Within this file,
+the `directories.tokendir` setting specifies the directory where SoftHSMv2
+creates and manages these files.
+
+For example: directories.tokendir = /var/lib/softhsm/tokens/
+
+While these keys are encrypted, they reside on the general-purpose file
+system. This provides a software-based secure storage but is not as resistant
+to physical tampering or advanced attacks as a dedicated hardware HSM.
+
+Content description
+- Initialize a Token (`softhsm2-util --init-token`): This step creates the token's
+  storage structure (the encrypted files) within the directories.tokendir (which is
+  /var/lib/softhsm/tokens/ by default). It sets up the token's initial state, including
+  PINs & label.
+- Generate a Key Pair (`pkcs11-tool --keypairgen`):
+  This action stores the newly generated key material (both the public and private keys)
+  inside that already existing and initialized token. It modifies the content of the
+  token's files but does not create new token files itself.
+
+9.5 Purpose
+------------
+
+To enable development, testing, and use of applications that require a PKCS#11
+compliant HSM, without needing a physical hardware device. It emulates the
+secure cryptographic functions and key storage of a hardware HSM in software.
+
+9.6 Integration
+----------------
+
+Applications link against the provided library to perform cryptographic
+operations, and administrators use the utility tools to manage the software
+tokens.
+
+9.7 Documentation
+------------------------
+
+- Ubuntu softhsm2 package information: https://packages.ubuntu.com/focal/softhsm2
+
+================================================================================
+10. GETTING STARTED ON UBUNTU HOST
+================================================================================
+
+This section outlines the steps to get started with SoftHSMv2.
+
+10.1 Prerequisites: Install pkcs11-tool
+---------------------------------------
+
+Before you can use `pkcs11-tool` to interact with SoftHSMv2, you need to install
+it:
+
+$ sudo apt install opensc
+
+10.2 SoftHSMv2 Installation
+----------------------------
+
+$ sudo apt-get install softhsm2
+
+10.3 Configuration
+-------------------
+
+Configuration file location: /etc/softhsm/softhsm2.conf
+
+Basic configuration (ensure `tokendir` is set):
+directories.tokendir = /var/lib/softhsm/tokens/
+objectstore.backend = file
+log.level = INFO
+
+10.4 Initialize Token
+----------------------
+
+Example command to initialize a token in slot 0:
+$ softhsm2-util --init-token --slot 0 --label "MyToken" --pin 1234 --so-pin 5678
+
+Example output:
+```
+The token has been initialized and is reassigned to slot 1461154852
+```
+
+10.5 Token location
+--------------------
+
+- Typically found in `/var/lib/softhsm/tokens/`.
+
+Example output:
+```
+total 24
+drwx--S--- 2 root softhsm 4096 Feb 20 14:29 .
+drwxrws--- 3 root softhsm 4096 Feb 20 13:22 ..
+-rw------- 1 root softhsm    0 Feb 20 14:29 a123cd69-85af-7e51-b7e7-fcf632525b55.lock
+-rw------- 1 root softhsm 2177 Feb 20 14:29 a123cd69-85af-7e51-b7e7-fcf632525b55.object
+-rw------- 1 root softhsm    0 Feb 20 14:29 fe0d047c-70cf-59a4-77ea-bc2337f6e67a.lock
+-rw------- 1 root softhsm  812 Feb 20 14:29 fe0d047c-70cf-59a4-77ea-bc2337f6e67a.object
+-rw------- 1 root softhsm    8 Feb 20 14:29 generation
+-rw------- 1 root softhsm    0 Feb 20 14:29 token.lock
+-rw------- 1 root softhsm  320 Feb 20 14:29 token.object
+```
+
+10.6 Generate Key Pair
+-----------------------
+
+After installing `opensc`, you can use `pkcs11-tool` to generate a key pair
+on your SoftHSMv2 token:
+
+$ pkcs11-tool --module /usr/lib/softhsm/libsofthsm2.so --login --pin 1234 \
+  --keypairgen --key-type RSA:2048 --label "MyKey"
+
+Example output:
+```
+Using slot 0 with a present token (0x57177424)
+Key pair generated:
+Private Key Object; RSA
+  label:      MyKey
+  Usage:      decrypt, sign, unwrap
+  Access:     sensitive, always sensitive, never extractable, local
+Public Key Object; RSA 2048 bits
+  label:      MyKey
+  Usage:      encrypt, verify, wrap
+  Access:     local
+```
+
+10.7 List Tokens
+-----------------
+
+List tokens to verify:
+$ softhsm2-util --show-slots
+
+Example output:
+```
+Available slots:
+Slot 1461154852
+    Slot info:
+        Description:      SoftHSM slot ID 0x57177424
+        Manufacturer ID:  SoftHSM project
+        Hardware version: 2.6
+        Firmware version: 2.6
+        Token present:    yes
+    Token info:
+        Manufacturer ID:  SoftHSM project
+        Model:            SoftHSM v2
+        Hardware version: 2.6
+        Firmware version: 2.6
+        Serial number:    0e40036557177424
+        Initialized:      yes
+        User PIN init.:   yes
+        Label:            MyToken
+Slot 1
+    Slot info:
+        Description:      SoftHSM slot ID 0x1
+        Manufacturer ID:  SoftHSM project
+        Hardware version: 2.6
+        Firmware version: 2.6
+        Token present:    yes
+    Token info:
+        Manufacturer ID:  SoftHSM project
+        Model:            SoftHSM v2
+        Hardware version: 2.6
+        Firmware version: 2.6
+        Serial number:
+        Initialized:      no
+        User PIN init.:   no
+        Label:
+```
+
+================================================================================
+11. Digital Signing a document example
+================================================================================
+
+Prerequisites:
+- You have SoftHSMv2 installed and configured.
+- You have initialized a token (e.g., "MyToken" with PIN 1234).
+- You have generated a key pair labeled "MyKey" on that token.
+- The path to your SoftHSMv2 library is `/usr/lib/softhsm/libsofthsm2.so`.
+
+11.1: Step 1: Create a simple test document
+-------------------------------------------
+
+First, let's create a text file that we want to digitally sign, in the new
+example directory.
+
+$ echo "This is a confidential document that needs to be signed securely." > \
+  examples/intro-to-soft-hsm/confidential_document.txt
+
+11.2: Step2: Sign the document with your private key
+----------------------------------------------------
+
+Now, we'll use `pkcs11-tool` to sign
+`examples/intro-to-soft-hsm/confidential_document.txt` using the private key
+labeled "MyKey" stored in your SoftHSMv2 token. The output will be a binary
+signature file, `examples/intro-to-soft-hsm/document_signature.bin`.
+
+Explanation:
+- `--module /usr/lib/softhsm/libsofthsm2.so`: Tells `pkcs11-tool` to use the
+   SoftHSMv2 library.
+- `--login --pin 1234`: Logs into the token using your user PIN.
+- `--sign`: Specifies that we want to perform a signing operation.
+- `--label "MyKey"`: Identifies the private key to use for signing.
+- `--input examples/intro-to-soft-hsm/confidential_document.txt`: The original
+   document to be signed.
+- `--output examples/intro-to-soft-hsm/document_signature.bin`: The file where
+   the resulting digital signature will be saved.
+
+$ pkcs11-tool --module /usr/lib/softhsm/libsofthsm2.so --login --pin 1234 \
+  --sign --label "MyKey" --mechanism RSA-PKCS --input \
+  examples/intro-to-soft-hsm/confidential_document.txt \
+  --output examples/intro-to-soft-hsm/document_signature.bin
+
+Example output:
+```
+Using slot 0 with a present token (0x57177424)
+Using signature algorithm RSA-PKCS
+```
+
+You won't see much output unless there's an error. A file named
+`examples/intro-to-soft-hsm/document_signature.bin` should now exist in your
+directory.
+
+11.3: Step 3: Verify the signature with your public key
+--------------------------------------------------------
+
+If someone else received `examples/intro-to-soft-hsm/confidential_document.txt`
+and `examples/intro-to-soft-hsm/document_signature.bin`. They could verify that
+the document hasn't been tampered with and that it indeed came from the owner
+of "MyKey". To do this, use the public key (which is part of "MyKey" key pair
+and does not require logging in if it's a public object).
+
+Explanation:
+- `--module /usr/lib/softhsm/libsofthsm2.so`: Again, specifies the SoftHSMv2
+   library.
+- `--verify`: Specifies that we want to perform a verification operation.
+- `--label "MyKey"`: Identifies the public key to use for verification.
+- `--input examples/intro-to-soft-hsm/confidential_document.txt`: The original
+   document that was signed.
+- `--signature examples/intro-to-soft-hsm/document_signature.bin`: The digital
+   signature file to verify
+   against.
+
+$ pkcs11-tool --module /usr/lib/softhsm/libsofthsm2.so --verify --label \
+  "MyKey" --mechanism RSA-PKCS --input \
+  examples/intro-to-soft-hsm/confidential_document.txt --signature-file \
+  examples/intro-to-soft-hsm/document_signature.bin
+
+Expected Output:
+```
+Using slot 0 with a present token (0x57177424)
+Using signature algorithm RSA-PKCS
+Signature is valid
+```
+If the document (`examples/intro-to-soft-hsm/confidential_document.txt`) or the
+signature file (`examples/intro-to-soft-hsm/document_signature.bin`) were
+tampered with, the verification will fail. This demonstrates the integrity and
+authenticity provided by digital signatures using SoftHSMv2.
+
+================================================================================
+12. Encryption and decryption example (Python)
+================================================================================
+
+While `pkcs11-tool` doesn't directly support data encryption from the command
+line, you can easily achieve this using Python with the `PyKCS11` library. This
+demonstrates how applications leverage SoftHSMv2 for data confidentiality.
+
+Documentation: https://python-pkcs11.readthedocs.io/en/latest/
+
+12.1. Prerequisites:
+--------------------
+
+- Python: Version 3.9 or newer is recommended.
+- PyKCS11 Library: This Python wrapper for PKCS#11 must be installed. You can
+  install via pip:
+
+$ pip install PyKCS11
+
+- SoftHSMv2 installed, configured, and a token initialized.
+- A key pair, "MyKey" generated by this guide example token.
+- The path to your SoftHSMv2 library is `/usr/lib/softhsm/libsofthsm2.so`.
+- A file to encrypt, `examples/intro-to-soft-hsm/secret_message.txt` in this
+  example.
+
+12.2. How PyKCS11 Works:
+------------------------
+
+The `PyKCS11` library (or `python-pkcs11`) provides Python bindings for the
+C-based PKCS#11 API. It allows Python applications to load the SoftHSMv2 shared
+library and make direct calls to its cryptographic functions (like C_Encrypt
+and C_Decrypt) in a Pythonic way.
+
+12.3. General Implementation Steps (Python Script)
+--------------------------------------------------
+
+1. Import Libraries: Import `PyKCS11` and `os`.
+2. Configuration: Define constants for the SoftHSMv2 library path, PINs, token
+   label, and key label.
+3. Load PKCS#11 Library: Instantiate `PyKCS11.PyKCS11Lib()` and load the
+   SoftHSMv2 shared library.
+4. Find Slot & Open Session: Get the list of available slots, select one with a
+   token, and open a read-write session.
+5. Login: Log into the session using the user PIN.
+6. Read Plaintext: Read the content of
+   `examples/intro-to-soft-hsm/secret_message.txt`.
+7. Find Keys: Locate the public key (for encryption) and private key (for
+   decryption) objects on the token using their labels.
+8. Encrypt Data: Use `session.encrypt()` with the public key, the plaintext
+   data, and a suitable mechanism (e.g., `CKM_RSA_PKCS_OAEP`). Save the output
+   to `examples/intro-to-soft-hsm/encrypted_message.bin`.
+9. Decrypt Data: Use `session.decrypt()` with the private key, the encrypted
+   data, and the same mechanism. Save the output to
+   `examples/intro-to-soft-hsm/decrypted_message.txt`.
+10. Verify: Compare the decrypted data with the original plaintext.
+11. Logout & Close: Ensure the session is properly logged out and closed.
+
+12.4. Step by step example
+--------------------------
+
+This approach demonstrates end-to-end encryption and decryption within your
+Python application, leveraging the secure key management of SoftHSMv2.
+
+12.4.1. Create the plaintext message file
+
+Ensure you have a file named `examples/intro-to-soft-hsm/secret_message.txt`
+in your repository root:
+
+$ echo "This is a super secret message for the HSM to encrypt." > \
+  examples/intro-to-soft-hsm/secret_message.txt
+
+12.4.2. Run the encryption script
+
+Execute the `examples/intro-to-soft-hsm/encrypt_message.py` script to encrypt
+the message:
+
+$ python3 examples/intro-to-soft-hsm/encrypt_message.py
+
+Expected output:
+```
+Loaded PKCS#11 library from /usr/lib/softhsm/libsofthsm2.so
+Found token in slot ID: 1461154852
+Logged into token 'MyToken' successfully with User PIN.
+Read 54 bytes from 'examples/intro-to-soft-hsm/secret_message.txt'.
+Data to encrypt: 'This is a super secret message for the HSM to encrypt.'
+Found Public Key with label 'MyKey'.
+Encrypting data using mechanism: 8197...
+Data encrypted and saved to 'examples/intro-to-soft-hsm/encrypted_message.bin'. Length: 256 bytes.
+
+Logged out and session closed.
+```
+
+12.4.3. Run the decryption script
+
+Execute the `examples/intro-to-soft-hsm/decrypt_message.py` script to decrypt the
+encrypted message:
+
+$ python3 examples/intro-to-soft-hsm/decrypt_message.py
+
+Expected output:
+```
+Loaded PKCS#11 library from /usr/lib/softhsm/libsofthsm2.so
+Found token in slot ID: 1461154852
+Logged into token 'MyToken' successfully with User PIN.
+Read 256 bytes from 'examples/intro-to-soft-hsm/encrypted_message.bin'.
+Found Private Key with label 'MyKey'.
+Decrypting data using mechanism: 8197...
+Data decrypted and saved to 'examples/intro-to-soft-hsm/decrypted_message.txt'.
+
+Decrypted message: 'This is a super secret message for the HSM to encrypt.'
+
+Logged out and session closed.
+```
+
+12.4.4. Verify the decrypted content
+-------------------------------------
+
+Confirm that the decrypted message matches the original plaintext:
+
+$ cat examples/intro-to-soft-hsm/decrypted_message.txt
+
+Expected output:
+```
+This is a super secret message for the HSM to encrypt.
+```
