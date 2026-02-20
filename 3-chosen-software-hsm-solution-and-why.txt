@@ -8,7 +8,7 @@ reference board implementation, and recommends the most suitable option
 based on those needs.
 
 ================================================================================
-USER REQUIREMENTS
+1. USER REQUIREMENTS
 ================================================================================
 
 The key requirements for the software HSM solution are:
@@ -22,12 +22,14 @@ The key requirements for the software HSM solution are:
 5. PKCS#11-Based: The solution must provide a PKCS#11 interface.
 
 ================================================================================
-PKCS#11-BASED SOFTWARE HSM SOLUTIONS
+2. PKCS#11-BASED SOFTWARE HSM SOLUTIONS
 ================================================================================
 
 Here are the possible PKCS#11-based software HSM solutions:
 
-1. SoftHSMv2:
+2.1 SoftHSMv2
+--------------
+
    - Description: A widely used open-source implementation of a cryptographic
      store that provides a PKCS#11 interface. It's developed as part of the
      OpenDNSSEC project and is designed for exploring PKCS#11 without needing a
@@ -37,26 +39,34 @@ Here are the possible PKCS#11-based software HSM solutions:
    - Cons: Keys are stored in files, which is less secure than hardware-backed
      solutions.
 
-2. OpenSC:
+2.2 OpenSC
+-----------
+
    - Description: An open-source project primarily for smart cards, but it also
      provides a PKCS#11 interface that can be used with software tokens.
    - Pros: Free, open-source, and mature.
    - Cons: Can be more complex to set up for software-only use cases.
 
-3. BouncyHsm:
+2.3 BouncyHsm
+--------------
+
    - Description: A software simulator of an HSM and smartcard with an HTML UI,
      REST API, and PKCS#11 interface.
    - Pros: Provides multiple interfaces (PKCS#11, REST, UI) for development and
      testing.
    - Cons: Newer and less widely used than SoftHSM.
 
-4. pkcs11-provider:
+2.4 Pkcs11-provider
+--------------------
+
    - Description: A Go-based implementation of a PKCS#11 provider and software
      HSM.
    - Pros: Modern implementation in Go.
    - Cons: Less mature than other options.
 
-5. tpm2-pkcs11:
+2.5 Tpm2-pkcs11
+---------------
+
    - Description: A TPM-backed software HSM that provides a PKCS#11 interface.
      It uses the Trusted Platform Module (TPM) on a device for hardware-backed
      key storage.
@@ -65,7 +75,7 @@ Here are the possible PKCS#11-based software HSM solutions:
      dedicated HSMs.
 
 ================================================================================
-ANALYSIS AND RECOMMENDATION
+3. ANALYSIS AND RECOMMENDATION
 ================================================================================
 
 All the listed solutions meet the PKCS#11 requirement. However, based on the
@@ -76,8 +86,6 @@ TI SoC, and provides a clear path to a hardware HSM, **SoftHSMv2 remains the
 strongest recommendation.**
 
 Justification:
--------------
-
 1. Cost-Effectiveness (No Additional Money):
    - SoftHSM is entirely free and open-source.
 
@@ -102,7 +110,7 @@ phase with a clear path to hardware HSM integration, **SoftHSMv2** is the most
 appropriate software HSM solution.
 
 ================================================================================
-SOFTHSM VS SOFTHSMV2
+4. SOFTHSM VS SOFTHSMV2
 ================================================================================
 
 SoftHSMv2 is the modern, recommended version of SoftHSM. It offers several

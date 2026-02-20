@@ -62,10 +62,10 @@ Software HSM:
 - No physical tamper protection
 
 ================================================================================
-3. SECURITY CONSIDERATIONS
+2. SECURITY CONSIDERATIONS
 ================================================================================
 
-3.1 Why Software HSMs Are Lower Security
+2.1 Why Software HSMs Are Lower Security
 -----------------------------------------
 
 1. No physical isolation
@@ -89,7 +89,7 @@ Software HSM:
    - With sufficient privileges, keys can be extracted from memory or disk
    - Hardware HSMs never expose keys to the host system
 
-3.2 Are Software HSMs All Software-Based?
+2.2 Are Software HSMs All Software-Based?
 ------------------------------------------
 
 Yes, by definition. Software HSMs:
@@ -99,10 +99,10 @@ Yes, by definition. Software HSMs:
 - No physical security boundaries
 
 ================================================================================
-4. DEPLOYMENT AND USE CASES
+3. DEPLOYMENT AND USE CASES
 ================================================================================
 
-4.1 Deployment Options
+3.1 Deployment Options
 ----------------------
 
 Software HSMs can run in various environments:
@@ -115,7 +115,7 @@ Software HSMs can run in various environments:
 
 Cloud is just ONE deployment option, not a requirement.
 
-4.2 Common Use Cases
+3.2 Common Use Cases
 --------------------
 
 - Development and testing environments (before deploying to production)
@@ -125,19 +125,17 @@ Cloud is just ONE deployment option, not a requirement.
 - CI/CD pipelines requiring signing operations
 - Applications with moderate security requirements
 
-4.3 Trade-offs
+3.3 Trade-offs
 --------------
 
-4.3.1 Advantages
-
+Advantages
 - Lower cost (no expensive hardware)
 - Easier deployment and setup
 - More flexible and portable
 - Good for testing and development
 - Easier to scale in distributed environments
 
-4.3.2 Disadvantages
-
+Disadvantages
 - Less secure than hardware HSMs
 - No physical tamper protection
 - Keys stored in software memory
@@ -145,10 +143,10 @@ Cloud is just ONE deployment option, not a requirement.
 - May not meet compliance requirements for sensitive data
 
 ================================================================================
-5. SOLUTIONS AND DECISION MAKING
+4. SOLUTIONS AND DECISION MAKING
 ================================================================================
 
-5.1 Popular Software HSM Solutions
+4.1 Popular Software HSM Solutions
 -----------------------------------
 
 - SoftHSM: Open-source PKCS#11 implementation
@@ -157,19 +155,17 @@ Cloud is just ONE deployment option, not a requirement.
 - Google Cloud KMS: Cloud key management service
 - HashiCorp Vault: Secrets management with HSM features
 
-5.2 When to Use Hardware vs Software HSM
+4.2 When to Use Hardware vs Software HSM
 -----------------------------------------
 
-5.2.1 Use Hardware HSM when:
-
+Use Hardware HSM when:
 - Handling highly sensitive data (financial, healthcare, government)
 - Compliance requirements mandate physical security
 - Root Certificate Authority operations
 - High-value transactions
 - Production environments with strict security needs
 
-5.2.2 Use Software HSM when:
-
+Use Software HSM when:
 - Development and testing
 - Lower-risk applications
 - Cost is a major constraint
