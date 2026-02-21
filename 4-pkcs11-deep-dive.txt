@@ -579,45 +579,6 @@ Hardware HSM vendors also provide PKCS#11 interfaces:
 9. Handle multi-threading carefully (check CKF_OS_LOCKING_OK)
 10. Validate vendor PKCS#11 compliance
 
-5.4 Setting Up SoftHSM
-----------------------
-
-5.4.1 Installation (Debian/Ubuntu)
-
-$ sudo apt-get install softhsm2
-
-5.4.2 Configuration
-
-Configuration file location:
-/etc/softhsm/softhsm2.conf
-
-Basic configuration:
-directories.tokendir = /var/lib/softhsm/tokens/
-objectstore.backend = file
-log.level = INFO
-
-5.4.3 Initialize Token
-
-$ softhsm2-util --init-token --slot 0 --label "MyToken" --pin 1234 --so-pin 5678
-
-5.4.4 List Tokens
-
-$ softhsm2-util --show-slots
-
-5.4.5 Generate Key Pair
-
-$ pkcs11-tool --module /usr/lib/softhsm/libsofthsm2.so --login --pin 1234 \
-  --keypairgen --key-type RSA:2048 --label "MyKey"
-
-5.4.6 Test with OpenSSL
-
-$ openssl engine dynamic \
-  -pre SO_PATH:/usr/lib/x86_64-linux-gnu/engines-1.1/pkcs11.so \
-  -pre ID:pkcs11 \
-  -pre LIST_ADD:1 \
-  -pre LOAD \
-  -pre MODULE_PATH:/usr/lib/softhsm/libsofthsm2.so
-
 ================================================================================
 6. COMPARISONS AND ECOSYSTEM
 ================================================================================

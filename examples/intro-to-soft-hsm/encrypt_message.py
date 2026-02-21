@@ -1,0 +1,83 @@
+import PyKCS11
+import os
+
+# --- Configuration ---
+# Adjust this path if your SoftHSMv2 library is in a different location
+SOFTHSM2_LIBRARY_PATH = "/usr/lib/softhsm/libsofthsm2.so"
+USER_PIN = "1234"
+TOKEN_LABEL = "MyToken" # Ensure this matches your token's label
+KEY_LABEL = "MyKey"     # Ensure this matches your generated key pair's label
+
+PLAINTEXT_FILE = "examples/intro-to-soft-hsm/secret_message2.txt"
+ENCRYPTED_FILE = "examples/intro-to-soft-hsm/encrypted_message.bin"
+
+# --- Main Script ---
+def encrypt_data():
+    try:
+        # 1. Load the PKCS#11 library
+        pkcs11 = PyKCS11.PyKCS11Lib()
+        pkcs11.load(SOFTHSM2_LIBRARY_PATH)
+        print(f"Loaded PKCS#11 library from {SOFTHSM2_LIBRARY_PATH}")
+
+        # 2. Get the first slot with a token present
+        slots = pkcs11.getSlotList(tokenPresent=True)
+        if not slots:
+            print("Error: No SoftHSMv2 token found. Please ensure it's initialized and present.")
+            return
+
+        # Use the first slot found
+        slot = slots[0]
+        print(f"Found token in slot ID: {slot}")
+
+        # 3. Open a session and log in
+        session = pkcs11.openSession(slot, PyKCS11.CKF_RW_SESSION | PyKCS11.CKF_SERIAL_SESSION)
+        session.login(USER_PIN)
+        print(f"Logged into token '{TOKEN_LABEL}' successfully with User PIN.")
+
+        # 4. Read data from the plaintext file
+        if not os.path.exists(PLAINTEXT_FILE):
+            print(f"Error: Plaintext file '{PLAINTEXT_FILE}' not found.")
+            return
+
+        with open(PLAINTEXT_FILE, 'rb') as f:
+            plaintext_data = f.read()
+        print(f"Read {len(plaintext_data)} bytes from '{PLAINTEXT_FILE}'.")
+        print(f"Data to encrypt: '{plaintext_data.decode()}'")
+
+        # 5. Find the Public Key for encryption
+        pub_key_attrs = [
+            (PyKCS11.CKA_CLASS, PyKCS11.CKO_PUBLIC_KEY),
+            (PyKCS11.CKA_LABEL, KEY_LABEL)
+        ]
+        public_keys = session.findObjects(pub_key_attrs)
+        if not public_keys:
+            print(f"Error: Public Key with label '{KEY_LABEL}' not found on token.")
+            return
+        public_key = public_keys[0]
+        print(f"Found Public Key with label '{KEY_LABEL}'.")
+
+        # 6. Encrypt the data using RSA-PKCS-OAEP mechanism
+        mechanism = PyKCS11.CKM_RSA_PKCS
+        print(f"Encrypting data using mechanism: {mechanism}...")
+        encrypted_data = session.encrypt(public_key, plaintext_data, PyKCS11.Mechanism(mechanism))
+
+        with open(ENCRYPTED_FILE, 'wb') as f:
+            f.write(bytes(encrypted_data))
+        print(f"Data encrypted and saved to '{ENCRYPTED_FILE}'. Length: {len(encrypted_data)} bytes.")
+
+    except PyKCS11.PyKCS11Error as e:
+        print(f"PKCS#11 Error: {e}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+    finally:
+        # Ensure logout and session closure even if errors occur
+        if 'session' in locals() and session:
+            try:
+                session.logout()
+                session.closeSession()
+                print("\nLogged out and session closed.")
+            except PyKCS11.PyKCS11Error as e:
+                print(f"Error during logout/session closure: {e}")
+
+if __name__ == "__main__":
+    encrypt_data()

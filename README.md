@@ -4,99 +4,164 @@ This repository contains an analysis of Software Hardware Security Modules (HSMs
 
 ## Table of Contents
 
-### 1-software-hsm-intro.txt: Software HSM Introduction
--   **1. INTRODUCTION**
-   - 1.1 What is a Software HSM?
-   - 1.2 Value Proposition and Benefits of Software HSMs
-   - 1.3 Software vs Hardware HSM
--   **3. SECURITY CONSIDERATIONS**
-   - 3.1 Why Software HSMs Are Lower Security
-   - 3.2 Are Software HSMs All Software-Based?
--   **4. DEPLOYMENT AND USE CASES**
-   - 4.1 Deployment Options
-   - 4.2 Common Use Cases
-   - 4.3 Trade-offs
-      - 4.3.1 Advantages
-      -   4.3.2 Disadvantages
--   **5. SOLUTIONS AND DECISION MAKING**
-   -   5.1 Popular Software HSM Solutions
-   -   5.2 When to Use Hardware vs Software HSM
-      -   5.2.1 Use Hardware HSM when:
-      -   5.2.2 Use Software HSM when:
+### 1-Software HSM Introduction
+- **1. INTRODUCTION**
+  - 1.1 What is a Software HSM?
+  - 1.2 Value Proposition and Benefits of Software HSMs
+  - 1.3 Software vs Hardware HSM
+- **2. SECURITY CONSIDERATIONS**
+  - 2.1 Why Software HSMs Are Lower Security
+  - 2.2 Are Software HSMs All Software-Based?
+- **3. DEPLOYMENT AND USE CASES**
+  - 3.1 Deployment Options
+  - 3.2 Common Use Cases
+  - 3.3 Trade-offs
+- **4. SOLUTIONS AND DECISION MAKING**
+  - 4.1 Popular Software HSM Solutions
+  - 4.2 When to Use Hardware vs Software HSM
 
-### 2-software-hsm-types.txt: Software HSM Types and Comparison
--   **1. SOFTWARE HSM CATEGORIES**
-   -   1.1 PKCS#11-Based Software HSMs
-   -   1.2 Cloud Key Management Services (KMS)
-   -   1.3 Enterprise Secrets Management Platforms
-   -   1.4 TPM-Backed Software HSMs
-   -   1.5 Pure Software Crypto Libraries
-   -   1.6 Embedded Software HSM Libraries
-   -   1.7 Database Encryption Key Managers
--   **2. USE CASE RECOMMENDATIONS**
-   -   2.1 Development/Testing
-   -   2.2 Cloud-Native Applications
-   -   2.3 Enterprise On-Premises
-   -   2.4 Embedded/IoT Devices
-   -   2.5 Database Encryption
-   -   2.6 Multi-Cloud Portability
--   **3. DECISION FACTORS**
-   -   Deployment environment (cloud, on-prem, embedded)
-   -   Security requirements (compliance, threat model)
-   -   Budget constraints
-   -   Operational complexity tolerance
-   -   Integration requirements (existing tools/platforms)
-   -   Performance requirements
-   -   Portability needs
-   -   Team expertise
+### 2-Software HSM Types and Comparison
+- **1. SOFTWARE HSM CATEGORIES**
+  - 1.1 PKCS#11-Based Software HSMs
+  - 1.2 Cloud Key Management Services (KMS)
+  - 1.3 Enterprise Secrets Management Platforms
+  - 1.4 TPM-Backed Software HSMs
+  - 1.5 Pure Software Crypto Libraries
+  - 1.6 Embedded Software HSM Libraries
+  - 1.7 Database Encryption Key Managers
+- **2. USE CASE RECOMMENDATIONS**
+  - 2.1 Development/Testing
+  - 2.2 Cloud-Native Applications
+  - 2.3 Enterprise On-Premises
+  - 2.4 Embedded/IoT Devices
+  - 2.5 Database Encryption
+  - 2.6 Multi-Cloud Portability
+- **3. DECISION FACTORS**
 
-### 3-pkcs11-deep-dive.txt: PKCS#11 Deep Dive
--   **1. INTRODUCTION**
-   -   1.1 What is PKCS#11?
-   -   1.2 Why PKCS#11 Exists
-   -   1.3 How PKCS#11 Works
--   **2. CORE CONCEPTS**
-   -   2.1 Key Concepts Overview
--   **3. UNDERSTANDING KEY COMPONENTS**
-   -   3.1 Slots - The Interface/Connection Point
-   -   3.2 Sessions - The Logical Connection
-      -   3.2.1 Session Types
-      -   3.2.2 Session Authentication States
-      -   3.2.3 Session Handles
-      -   3.2.4 Why Sessions Exist
-      -   3.2.5 Session Lifecycle Example
-      -   3.2.6 Common Session Pitfalls
-   -   3.3 The Complete Hierarchy
-      -   3.3.1 The Architecture
-      -   3.3.2 Component Comparison Table
-      -   3.3.3 The Workflow - From Slot to Object
-      -   3.3.4 Multiple Concurrent Sessions
-      -   3.3.5 Real-World Example - Apache Web Server
-      -   3.3.6 Persistence Across the Hierarchy
-      -   3.3.7 Analogy Summary
--   **4. TECHNICAL REFERENCE**
-   -   4.1 Core PKCS#11 Functions
-      -   4.1.1 Initialization Functions
-      -   4.1.2 Key Management Functions
-      -   4.1.3 Cryptographic Operations
-      -   4.1.4 Session Management Functions
-   -   4.2 PKCS#11 Object Types
-   -   4.3 PKCS#11 Key Attributes
--   **5. PRACTICAL IMPLEMENTATION**
-   -   5.1 Common Applications Using PKCS#11
-   -   5.2 PKCS#11 Software Implementations
-      -   5.2.1 SoftHSM
-      -   5.2.2 OpenSC
-      -   5.2.3 NSS (Network Security Services)
-      -   5.2.4 Hardware HSM Vendors
-   -   5.3 PKCS#11 Best Practices
-   -   5.4 Setting Up SoftHSM
--   **6. COMPARISONS AND ECOSYSTEM**
-   -   6.1 PKCS#11 vs Other Standards
-      -   6.1.1 PKCS#11 vs KMIP
-      -   6.1.2 PKCS#11 vs Microsoft CAPI/CNG
-      -   6.1.3 PKCS#11 vs JCA/JCE
-      -   6.1.4 PKCS#11 vs OpenSSL Engine
-   -   6.2 PKCS#11 URI Scheme
-   -   6.3 Limitations of PKCS#11
-   -   6.4 Learning Resources
+### 3-Recommended Software HSM for TI SoC Development
+- **1. USER REQUIREMENTS**
+- **2. PKCS#11-BASED SOFTWARE HSM SOLUTIONS**
+  - 2.1 SoftHSMv2
+  - 2.2 OpenSC
+  - 2.3 BouncyHsm
+  - 2.4 Pkcs11-provider
+  - 2.5 Tpm2-pkcs11
+- **3. ANALYSIS AND RECOMMENDATION**
+- **4. SOFTHSM VS SOFTHSMV2**
+
+### 4-PKCS#11 Deep Dive
+- **1. INTRODUCTION**
+  - 1.1 What is PKCS#11?
+  - 1.2 Why PKCS#11 Exists
+  - 1.3 How PKCS#11 Works
+- **2. CORE CONCEPTS**
+  - 2.1 Key Concepts Overview
+- **3. UNDERSTANDING KEY COMPONENTS**
+  - 3.1 Slots - The Interface/Connection Point
+  - 3.2 Sessions - The Logical Connection
+    - 3.2.1 Session Types
+    - 3.2.2 Session Authentication States
+    - 3.2.3 Session Handles
+    - 3.2.4 Why Sessions Exist
+    - 3.2.5 Session Lifecycle Example
+    - 3.2.6 Common Session Pitfalls
+  - 3.3 The Complete Hierarchy
+    - 3.3.1 The Architecture
+    - 3.3.2 Component Comparison Table
+    - 3.3.3 The Workflow - From Slot to Object
+    - 3.3.4 Multiple Concurrent Sessions
+    - 3.3.5 Real-World Example - Apache Web Server
+    - 3.3.6 Persistence Across the Hierarchy
+    - 3.3.7 Analogy Summary
+- **4. TECHNICAL REFERENCE**
+  - 4.1 Core PKCS#11 Functions
+    - 4.1.1 Initialization Functions
+    - 4.1.2 Key Management Functions
+    - 4.1.3 Cryptographic Operations
+    - 4.1.4 Session Management Functions
+  - 4.2 PKCS#11 Object Types
+  - 4.3 PKCS#11 Key Attributes
+- **5. PRACTICAL IMPLEMENTATION**
+  - 5.1 Common Applications Using PKCS#11
+  - 5.2 PKCS#11 Software Implementations
+    - 5.2.1 SoftHSM
+    - 5.2.2 OpenSC
+    - 5.2.3 NSS (Network Security Services)
+    - 5.2.4 Hardware HSM Vendors
+  - 5.3 PKCS#11 Best Practices
+- **6. COMPARISONS AND ECOSYSTEM**
+  - 6.1 PKCS#11 vs Other Standards
+    - 6.1.1 PKCS#11 vs KMIP
+    - 6.1.2 PKCS#11 vs Microsoft CAPI/CNG
+    - 6.1.3 PKCS#11 vs JCA/JCE
+    - 6.1.4 PKCS#11 vs OpenSSL Engine
+  - 6.2 PKCS#11 URI Scheme
+  - 6.3 Limitations of PKCS#11
+  - 6.4 Learning Resources
+
+### 5-Understanding SoftHSMv2
+- **1. WHAT IS SOFTHSMV2?**
+- **2. SOFTHSMV2 ORIGINS**
+  - 2.1 Age and History
+  - 2.2 Development and Maintenance
+- **3. HOW IT WORKS**
+  - 3.1 The PKCS#11 Interface
+  - 3.2 Library Interaction
+  - 3.3 Software Emulation
+  - 3.4 Secure Storage (Token)
+  - 3.5 Documentation
+- **4. REAL-WORLD USE CASE: DEVELOPMENT AND TESTING**
+  - 4.1 The Production Requirement
+  - 4.2 The Development Challenge
+  - 4.3 The SoftHSMv2 Solution
+  - 4.4 The Transition to Production
+- **5. AVAILABLE WRAPPERS (LANGUAGE INTEGRATIONS)**
+  - 5.1 Python
+  - 5.2 Java
+  - 5.3 Go
+  - 5.4 C# (.NET)
+  - 5.5 Node.js (JavaScript/TypeScript)
+- **6. UNDERSTANDING KEY PAIRS**
+  - 6.1 What do key pairs consist of?
+  - 6.2 Key pair usecase
+  - 6.3 Why generate in SoftHSMv2 (or any HSM)?
+- **7. POSSIBLE CRYPTOGRAPHIC & ADMINISTATIVE ACTIONS USING SOFTWARE HSM**
+  - 7.1 Generate Cryptographic Keys
+  - 7.2 Securely Store Keys and Certificates
+  - 7.3 Perform Cryptographic Operations
+  - 7.4 Manage Certificates
+  - 7.5 Administrative Tasks (using `softhsm2-util` and `pkcs11-tool`)
+- **8. THE PKCS#11 TOOL**
+  - 8.1 Origin
+  - 8.2 How it is a Client of SoftHSMv2
+  - 8.3 Why We Need It
+  - 8.4 Documentation
+- **9. ANALYZING THE SOFTHSM2 PACKAGE (UBUNTU)**
+  - 9.1 Core Library
+  - 9.2 Utility Tool
+  - 9.3 Configuration Files
+  - 9.4 Token Location
+  - 9.5 Purpose
+  - 9.6 Integration
+  - 9.7 Documentation
+- **10. GETTING STARTED ON UBUNTU HOST**
+  - 10.1 Prerequisites: Install pkcs11-tool
+  - 10.2 SoftHSMv2 Installation
+  - 10.3 Configuration
+  - 10.4 Initialize Token
+  - 10.5 Token location
+  - 10.6 Generate Key Pair
+  - 10.7 List Tokens
+- **11. Digital Signing a document example**
+  - 11.1: Step 1: Create a simple test document
+  - 11.2: Step2: Sign the document with your private key
+  - 11.3: Step 3: Verify the signature with your public key
+- **12. Encryption and decryption example (Python)**
+  - 12.1. Prerequisites:
+  - 12.2. How PyKCS11 Works:
+  - 12.3. General Implementation Steps (Python Script)
+  - 12.4. Step by step example
+    - 12.4.1. Create the plaintext message file
+    - 12.4.2. Run the encryption script
+    - 12.4.3. Run the decryption script
+    - 12.4.4. Verify the decrypted content
