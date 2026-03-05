@@ -643,7 +643,25 @@ Advantages:
 - No vendor-specific paths or identifiers
 - Portable across implementations
 
-6.3 Limitations of PKCS#11
+6.3 Cloud-Based PKCS#11 Providers
+---------------------------------
+
+Cloud-based KMS services (like AWS KMS or Google Cloud KMS) use REST APIs
+rather than a local PKCS#11 library. To bridge this gap, vendors or open-source
+projects provide PKCS#11 "providers" (dynamic libraries) that translate
+PKCS#11 calls into cloud API requests.
+
+Examples:
+- aws-kms-pkcs11: A library that allows PKCS#11 applications to use AWS KMS.
+- gcp-kms-pkcs11: A library for interacting with Google Cloud KMS.
+- Azure Key Vault PKCS#11: Microsoft's library for Azure.
+
+Benefits:
+- Applications don't need to be rewritten with vendor SDKs.
+- Centralized key storage and auditing in the cloud.
+- Standardized access across different infrastructure providers.
+
+6.4 Limitations of PKCS#11
 ---------------------------
 
 1. Complex API:
@@ -671,7 +689,7 @@ Advantages:
    -  Vendor docs often incomplete
    -  Few good tutorials or examples
 
-6.4 Learning Resources
+6.5 Learning Resources
 -----------------------
 
 Official Specification:

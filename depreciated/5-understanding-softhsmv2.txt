@@ -1,4 +1,11 @@
 ################################################################################
+# DEPRECATION NOTE: This software HSM solution is deprecated for this project.
+# It does not meet the "Safe Storage" security requirement for production
+# deployment as it stores keys as standard files on the host filesystem.
+# It is kept here for historical context and development/testing reference only.
+################################################################################
+
+################################################################################
 UNDERSTANDING SOFTHSMV2
 A Deep Dive into the Software-Based HSM
 ################################################################################

@@ -38,7 +38,7 @@ This repository contains an analysis of Software Hardware Security Modules (HSMs
   - 2.6 Multi-Cloud Portability
 - **3. DECISION FACTORS**
 
-### 3-Recommended Software HSM for TI SoC Development
+### 3-Recommended Software HSM for TI SoC Production
 - **1. USER REQUIREMENTS**
 - **2. PKCS#11-BASED SOFTWARE HSM SOLUTIONS**
   - 2.1 SoftHSMv2
@@ -96,10 +96,11 @@ This repository contains an analysis of Software Hardware Security Modules (HSMs
     - 6.1.3 PKCS#11 vs JCA/JCE
     - 6.1.4 PKCS#11 vs OpenSSL Engine
   - 6.2 PKCS#11 URI Scheme
-  - 6.3 Limitations of PKCS#11
-  - 6.4 Learning Resources
+  - 6.3 Cloud-Based PKCS#11 Providers
+  - 6.4 Limitations of PKCS#11
+  - 6.5 Learning Resources
 
-### 5-Understanding SoftHSMv2
+### 5-Understanding SoftHSMv2 (DEPRECATED)
 - **1. WHAT IS SOFTHSMV2?**
 - **2. SOFTHSMV2 ORIGINS**
   - 2.1 Age and History
