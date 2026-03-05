@@ -1,9 +1,9 @@
 ################################################################################
-RECOMMENDED SOFTWARE HSM FOR TI SOC DEVELOPMENT
+RECOMMENDED SOFTWARE HSM FOR TI SOC PRODUCTION
 ################################################################################
 
 This document summarizes the requirements for a software HSM solution
-during the development and testing phases for a Texas Instruments SoC
+for the production deployment phase of a Texas Instruments SoC
 reference board implementation, and recommends the most suitable option
 based on those needs.
 
@@ -14,126 +14,123 @@ based on those needs.
 The key requirements for the software HSM solution are:
 
 1. Target Platform: Texas Instruments SoC reference board implementation.
-2. Development Stage: Primarily for development and testing.
-3. Cost-Effectiveness: No additional financial outlay for implementing a
-   secure solution during development and testing stages.
-4. Hardware HSM Migration: Easy transfer to a production-grade hardware
-   HSM solution with minimum or no effort.
-5. PKCS#11-Based: The solution must provide a PKCS#11 interface.
+2. Deployment Stage: Production Ready (suitable for high-security deployment).
+3. Secure Key Storage: Keys must be stored in a "safe place" with high-
+   security software protections. This includes managed cloud-based Key
+   Management Services (KMS) or high-integrity software HSM platforms.
+4. PKCS#11-Based: The solution must provide a standard PKCS#11 interface.
+5. Software-Defined: The solution must be a software-based implementation
+   (or software-defined service) rather than a local physical hardware HSM.
+6. Cost-Effectiveness: Preference for a solution with low monthly overhead
+   for a use case focused strictly on cryptographic key storage.
 
 ================================================================================
 2. PKCS#11-BASED SOFTWARE HSM SOLUTIONS
 ================================================================================
 
-Here are the possible PKCS#11-based software HSM solutions:
+Here are the possible PKCS#11-based software HSM solutions for production:
 
-2.1 SoftHSMv2
---------------
+2.1 Cloud-Based Key Management Services (KMS)
+----------------------------------------------
 
-   - Description: A widely used open-source implementation of a cryptographic
-     store that provides a PKCS#11 interface. It's developed as part of the
-     OpenDNSSEC project and is designed for exploring PKCS#11 without needing a
-     physical Hardware Security Module.
-   - Pros: Free, open-source, and specifically designed for development and
-     testing.
-   - Cons: Keys are stored in files, which is less secure than hardware-backed
-     solutions.
+Examples:
+- AWS Key Management Service (KMS)
+- Google Cloud KMS
+- Azure Key Vault
+- Oracle Cloud Infrastructure (OCI) Key Management
+- IBM Cloud Hyper Protect Crypto Services
 
-2.2 OpenSC
------------
+Description:
+- Managed cryptographic services provided by cloud vendors.
+- Primarily focused on the lifecycle management of cryptographic keys.
+- Often backed by FIPS-certified hardware HSMs in provider data centers.
 
-   - Description: An open-source project primarily for smart cards, but it also
-     provides a PKCS#11 interface that can be used with software tokens.
-   - Pros: Free, open-source, and mature.
-   - Cons: Can be more complex to set up for software-only use cases.
+PROS:
++ Highly Cost-Effective: Only ~$1.00/month per key with low API costs.
++ Zero Infrastructure Management: Provider handles patching, scaling, and HA.
++ Deep Ecosystem Integration: Native support for S3, RDS, EBS, etc.
++ High Availability: Built-in redundancy across multiple availability zones.
++ Compliance: Inherits provider certifications (SOC 2, PCI-DSS, HIPAA, FIPS).
++ Pay-as-you-go Pricing: No upfront capital expenditure for hardware.
 
-2.3 BouncyHsm
---------------
+CONS:
+- Vendor Lock-in: Proprietary APIs make it difficult to switch providers.
+- Network Latency: Every crypto operation requires a network round-trip.
+- Internet Dependency: Requires stable outbound connectivity.
+- Limited Control: Users cannot manage the physical HSM hardware directly.
 
-   - Description: A software simulator of an HSM and smartcard with an HTML UI,
-     REST API, and PKCS#11 interface.
-   - Pros: Provides multiple interfaces (PKCS#11, REST, UI) for development and
-     testing.
-   - Cons: Newer and less widely used than SoftHSM.
+2.2 Enterprise Secrets Management Platforms
+--------------------------------------------
 
-2.4 Pkcs11-provider
---------------------
+Examples:
+- HashiCorp Vault (OSS, Enterprise, and Cloud/HCP)
+- CyberArk Conjur
+- Akeyless Vault Platform (SaaS)
+- Keeper Secrets Manager
+- Bitwarden Secrets Manager
 
-   - Description: A Go-based implementation of a PKCS#11 provider and software
-     HSM.
-   - Pros: Modern implementation in Go.
-   - Cons: Less mature than other options.
+Description:
+- Holistic platforms designed to secure, store, and control access to secrets.
+- Manages various sensitive data: API keys, passwords, certs, and crypto keys.
+- Provides "Secrets as a Service" with identity-based access control.
 
-2.5 Tpm2-pkcs11
----------------
+PROS:
++ Multi-Cloud/Hybrid Support: Unified API across all infrastructure providers.
++ Dynamic Secrets: Reduces risk by generating short-lived, on-demand credentials.
++ Encryption as a Service: App-level crypto without exposing keys to apps.
++ Centralized Policy Engine: Sophisticated identity-based access control.
++ Identity Agnostic: Auth via K8s, IAM roles, LDAP, OIDC, or GitHub.
 
-   - Description: A TPM-backed software HSM that provides a PKCS#11 interface.
-     It uses the Trusted Platform Module (TPM) on a device for hardware-backed
-     key storage.
-   - Pros: Provides hardware-backed security using the TPM.
-   - Cons: Requires a device with a TPM, and TPM performance is slower than
-     dedicated HSMs.
+CONS:
+- High Operational Complexity: Self-hosting requires expertise in HA and DR.
+- High Cost: Managed clusters start at ~$360.00/month (base overhead).
+- Single Point of Failure: Centralizes all secrets; highly critical component.
+- Performance Overhead: Retrieving secrets adds latency to application logic.
+- Cost: Enterprise features often carry significant licensing or SaaS fees.
+
+2.3 SoftHSMv2 (Now Depreciated for Production)
+-----------------------------------------------
+
+Description:
+- Open-source implementation of a cryptographic store providing PKCS#11.
+- Pros: Free, portable, and well-understood for development.
+- Cons: Keys are stored as files on the host filesystem, failing to meet
+  the "high-security safe place" requirement for production.
 
 ================================================================================
-3. ANALYSIS AND RECOMMENDATION
+3. SIDE-BY-SIDE COMPARISON: CLOUD KMS VS. SECRETS MANAGEMENT
 ================================================================================
 
-All the listed solutions meet the PKCS#11 requirement. However, based on the
-other requirements, we can narrow down the options.
+| Feature              | Cloud KMS                    | Secrets Management        |
+|----------------------|------------------------------|---------------------------|
+| Infrastructure       | Managed (Provider)           | Self-hosted or SaaS       |
+| Key Scope            | Cryptographic Keys Only      | All secrets (Keys, PWs)   |
+| Multi-Cloud Support  | No (Provider Specific)       | Yes (Cloud Agnostic)      |
+| Dynamic Credentials  | No                           | Yes                       |
+| Operational Effort   | Low                          | High                      |
+| Primary Interface    | REST API / PKCS#11 Provider  | Unified API / CLI         |
 
-For a solution that is free, easy to set up for development and testing on a
-TI SoC, and provides a clear path to a hardware HSM, **SoftHSMv2 remains the
-strongest recommendation.**
+================================================================================
+4. ANALYSIS AND RECOMMENDATION
+================================================================================
+
+Based on the new production-ready requirements and the narrow focus on
+cryptographic key storage, **Cloud-Based KMS is the recommended software HSM
+solution.**
 
 Justification:
-1. Cost-Effectiveness (No Additional Money):
-   - SoftHSM is entirely free and open-source.
+1. Cost Superiority: For a project only requiring key storage, Cloud KMS is
+   orders of magnitude cheaper (~$1.00/key/month) than managed enterprise
+   platforms like HashiCorp Vault (~$360.00+/month), which carries high base
+   overhead for unused features.
+2. Production Grade: Cloud KMS provides production-grade security backed by
+   FIPS-certified hardware HSMs in the cloud, fulfilling the "safe place"
+   requirement with near-zero operational effort.
+3. PKCS#11-Based: It integrates directly into the TI SoC software stack via
+   standard PKCS#11 providers (e.g., aws-kms-pkcs11).
+4. Software-Defined: Meets the requirement for a software-defined service,
+   providing high security without local physical hardware HSM modules.
 
-2. Easy Transfer to Hardware HSM:
-   - By developing against the standard PKCS#11 API provided by SoftHSM, the
-     application can be easily migrated to a hardware HSM with minimal or no
-     code changes.
-
-3. Suitability for Development and Testing:
-   - SoftHSM is specifically designed for this purpose, providing a functional
-     environment for building and validating cryptographic operations.
-
-While **tpm2-pkcs11** is an interesting option because it provides
-hardware-backed keys, it has the overhead of requiring a TPM on the
-development board and dealing with the complexities of TPMs. For the initial
-development and testing phase, the simplicity of SoftHSM is a significant
-advantage. The other solutions are also viable but are either less mature or
-more complex to set up than SoftHSM.
-
-Therefore, for projects aiming for a cost-free development and testing
-phase with a clear path to hardware HSM integration, **SoftHSMv2** is the most
-appropriate software HSM solution.
-
-================================================================================
-4. SOFTHSM VS SOFTHSMV2
-================================================================================
-
-SoftHSMv2 is the modern, recommended version of SoftHSM. It offers several
-key improvements over its predecessor:
-
-1. Enhanced Security:
-   - SoftHSMv2 prioritizes higher security by encrypting sensitive data and
-     utilizing unswappable memory to protect keys from being swapped to
-     disk.
-
-2. Flexible Cryptographic Backends:
-   - It provides more flexibility by allowing the choice between Botan or
-     OpenSSL for cryptographic operations, whereas v1 was more tightly
-     coupled.
-
-3. Structured Configuration:
-   - It uses a more organized configuration approach with a dedicated file
-     (e.g., /etc/softhsm2.conf) and a utility tool (`softhsm2-util`) for
-     token management.
-
-4. Migration Path:
-   - SoftHSMv2 includes a migration tool to convert token databases from the
-     v1 format, indicating advancements in token storage and management.
-
-In summary, SoftHSMv2 should be used for all new projects due to its improved
-security, flexibility, and more modern architecture.
+CONCLUSION:
+For the production deployment of the TI SoC project, a managed **Cloud KMS**
+(e.g., AWS KMS) is the most appropriate and cost-effective software HSM solution.
