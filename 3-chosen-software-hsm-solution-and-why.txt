@@ -16,13 +16,15 @@ The key requirements for the software HSM solution are:
 1. Target Platform: Texas Instruments SoC reference board implementation.
 2. Deployment Stage: Production Ready (suitable for high-security deployment).
 3. Secure Key Storage: Keys must be stored in a "safe place" with high-
-   security software protections. This includes managed cloud-based Key
-   Management Services (KMS) or high-integrity software HSM platforms.
+   security protections.
 4. PKCS#11-Based: The solution must provide a standard PKCS#11 interface.
 5. Software-Defined: The solution must be a software-based implementation
    (or software-defined service) rather than a local physical hardware HSM.
 6. Cost-Effectiveness: Preference for a solution with low monthly overhead
    for a use case focused strictly on cryptographic key storage.
+7. Hardware Independence: The solution must NOT assume or require any
+   existing hardware-backed security modules on the board, such as an
+   onboard TPM or physical HSM.
 
 ================================================================================
 2. PKCS#11-BASED SOFTWARE HSM SOLUTIONS
@@ -110,27 +112,36 @@ Description:
 | Operational Effort   | Low                          | High                      |
 | Primary Interface    | REST API / PKCS#11 Provider  | Unified API / CLI         |
 
+--------------------------------------------------------------------------------
+3.1 CLOUD KMS PROVIDER COMPARISON
+--------------------------------------------------------------------------------
+
+| Feature             | Google Cloud KMS           | AWS KMS                   | Azure Managed HSM         |
+|---------------------|----------------------------|---------------------------|---------------------------|
+| PKCS#11 Bridge      | Cloud KMS PKCS#11 (OSS)    | AWS KMS PKCS#11 (Official)| Managed HSM Library       |
+| Security Level      | FIPS 140-2 Level 3         | FIPS 140-2 Level 2        | FIPS 140-2 Level 3        |
+| Setup Effort        | Low (Open Source)          | Low (Official Library)    | High (Dedicated Instance) |
+| Base Monthly Cost   | ~$1.00 / key               | ~$1.00 / key              | ~$2,300.00 / pool         |
+
 ================================================================================
 4. ANALYSIS AND RECOMMENDATION
 ================================================================================
 
-Based on the new production-ready requirements and the narrow focus on
-cryptographic key storage, **Cloud-Based KMS is the recommended software HSM
+Based on the production-ready requirements and the narrow focus on
+cryptographic key storage, **Google Cloud KMS is the recommended software HSM
 solution.**
 
 Justification:
-1. Cost Superiority: For a project only requiring key storage, Cloud KMS is
-   orders of magnitude cheaper (~$1.00/key/month) than managed enterprise
-   platforms like HashiCorp Vault (~$360.00+/month), which carries high base
-   overhead for unused features.
-2. Production Grade: Cloud KMS provides production-grade security backed by
-   FIPS-certified hardware HSMs in the cloud, fulfilling the "safe place"
-   requirement with near-zero operational effort.
-3. PKCS#11-Based: It integrates directly into the TI SoC software stack via
-   standard PKCS#11 providers (e.g., aws-kms-pkcs11).
+1. Cost Superiority: At ~$1.00/key/month with extremely low transaction fees,
+   it is the most cost-effective production-grade solution.
+2. Production Grade: Provides HSM-backed keys with FIPS 140-2 Level 3 security
+   in the cloud, fulfilling the "safe place" requirement.
+3. PKCS#11-Based: It integrates directly into the TI SoC software stack via the
+   mature and open-source `libgoogle-kms-pkcs11.so`.
 4. Software-Defined: Meets the requirement for a software-defined service,
-   providing high security without local physical hardware HSM modules.
+   providing high security without requiring local physical hardware (TPM/HSM)
+   on the board.
 
 CONCLUSION:
-For the production deployment of the TI SoC project, a managed **Cloud KMS**
-(e.g., AWS KMS) is the most appropriate and cost-effective software HSM solution.
+For the production deployment of the TI SoC project, **Google Cloud KMS**
+is the most appropriate, flexible, and cost-effective software HSM solution.
