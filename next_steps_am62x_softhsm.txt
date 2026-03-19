@@ -1,0 +1,66 @@
+# Next Steps: Using SoftHSMv2 for AM62x Secure Boot Signing
+
+Based on the analysis of the `ti-u-boot` repository, here is the plan to integrate SoftHSMv2 into the `binman` signing flow for the AM62x board.
+
+## 1. HSM Key Setup
+Initialize a token and generate a signing key that will be used by `binman`.
+
+```bash
+# Initialize the token
+softhsm2-util --init-token --slot 0 --label "TI_AM62x_Keys" --pin 1234 --so-pin 5678
+
+# Generate the RSA-2048 signing key
+pkcs11-tool --module /usr/lib/softhsm/libsofthsm2.so --login --pin 1234 \
+            --keypairgen --key-type RSA:2048 --label "custMpk"
+```
+
+## 2. Patch Binman OpenSSL Tool
+Modify `u-boot/ti-u-boot/tools/binman/btool/openssl.py` to detect PKCS#11 URIs and add the necessary engine flags.
+
+**Change Logic:**
+In all `x509_cert_*` methods, check if `key_fname` starts with `pkcs11:`.
+
+```python
+# Proposed logic change in openssl.py
+if key_fname.startswith('pkcs11:'):
+    args = ['req', '-new', '-x509', '-engine', 'pkcs11', '-keyform', 'engine', 
+            '-key', key_fname, '-nodes', ...]
+else:
+    args = ['req', '-new', '-x509', '-key', key_fname, '-nodes', ...]
+```
+
+## 3. Update AM62x Binman DTSI
+Update the `keyfile` property in `arch/arm/dts/k3-am625-sk-binman.dtsi` to use the SoftHSM URI instead of a `.pem` filename.
+
+```dts
+// arch/arm/dts/k3-am625-sk-binman.dtsi
+&binman {
+    tiboot3-am62x-hs-evm.bin {
+        ti-secure-rom {
+            keyfile = "pkcs11:token=TI_AM62x_Keys;object=custMpk;type=private";
+            // ...
+        };
+    };
+};
+```
+
+## 4. OpenSSL Engine Configuration
+Ensure the `pkcs11` engine is correctly configured in your system `openssl.cnf` so that `openssl req` knows how to load the SoftHSM library.
+
+```ini
+[engine_section]
+pkcs11 = pkcs11_section
+
+[pkcs11_section]
+dynamic_path = /usr/lib/x86_64-linux-gnu/engines-3/libpkcs11.so
+module_path = /usr/lib/softhsm/libsofthsm2.so
+init = 0
+```
+
+## 5. Build U-Boot
+When you run the build (e.g., `make DEVICE_TREE=k3-am625-sk`), `binman` will:
+1. Parse the DTB.
+2. See the `pkcs11:` URI as the `keyfile`.
+3. Call the patched `openssl.py`.
+4. Run `openssl` with the `-engine pkcs11` flags.
+5. SoftHSM will perform the signing without the private key ever being exposed as a file.
