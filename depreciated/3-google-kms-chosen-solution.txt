@@ -1,0 +1,147 @@
+################################################################################
+RECOMMENDED SOFTWARE HSM FOR TI SOC PRODUCTION
+################################################################################
+
+This document summarizes the requirements for a software HSM solution
+for the production deployment phase of a Texas Instruments SoC
+reference board implementation, and recommends the most suitable option
+based on those needs.
+
+================================================================================
+1. USER REQUIREMENTS
+================================================================================
+
+The key requirements for the software HSM solution are:
+
+1. Target Platform: Texas Instruments SoC reference board implementation.
+2. Deployment Stage: Production Ready (suitable for high-security deployment).
+3. Secure Key Storage: Keys must be stored in a "safe place" with high-
+   security protections.
+4. PKCS#11-Based: The solution must provide a standard PKCS#11 interface.
+5. Software-Defined: The solution must be a software-based implementation
+   (or software-defined service) rather than a local physical hardware HSM.
+6. Cost-Effectiveness: Preference for a solution with low monthly overhead
+   for a use case focused strictly on cryptographic key storage.
+7. Hardware Independence: The solution must NOT assume or require any
+   existing hardware-backed security modules on the board, such as an
+   onboard TPM or physical HSM.
+
+================================================================================
+2. PKCS#11-BASED SOFTWARE HSM SOLUTIONS
+================================================================================
+
+Here are the possible PKCS#11-based software HSM solutions for production:
+
+2.1 Cloud-Based Key Management Services (KMS)
+----------------------------------------------
+
+Examples:
+- AWS Key Management Service (KMS)
+- Google Cloud KMS
+- Azure Key Vault
+- Oracle Cloud Infrastructure (OCI) Key Management
+- IBM Cloud Hyper Protect Crypto Services
+
+Description:
+- Managed cryptographic services provided by cloud vendors.
+- Primarily focused on the lifecycle management of cryptographic keys.
+- Often backed by FIPS-certified hardware HSMs in provider data centers.
+
+PROS:
++ Highly Cost-Effective: Only ~$1.00/month per key with low API costs.
++ Zero Infrastructure Management: Provider handles patching, scaling, and HA.
++ Deep Ecosystem Integration: Native support for S3, RDS, EBS, etc.
++ High Availability: Built-in redundancy across multiple availability zones.
++ Compliance: Inherits provider certifications (SOC 2, PCI-DSS, HIPAA, FIPS).
++ Pay-as-you-go Pricing: No upfront capital expenditure for hardware.
+
+CONS:
+- Vendor Lock-in: Proprietary APIs make it difficult to switch providers.
+- Network Latency: Every crypto operation requires a network round-trip.
+- Internet Dependency: Requires stable outbound connectivity.
+- Limited Control: Users cannot manage the physical HSM hardware directly.
+
+2.2 Enterprise Secrets Management Platforms
+--------------------------------------------
+
+Examples:
+- HashiCorp Vault (OSS, Enterprise, and Cloud/HCP)
+- CyberArk Conjur
+- Akeyless Vault Platform (SaaS)
+- Keeper Secrets Manager
+- Bitwarden Secrets Manager
+
+Description:
+- Holistic platforms designed to secure, store, and control access to secrets.
+- Manages various sensitive data: API keys, passwords, certs, and crypto keys.
+- Provides "Secrets as a Service" with identity-based access control.
+
+PROS:
++ Multi-Cloud/Hybrid Support: Unified API across all infrastructure providers.
++ Dynamic Secrets: Reduces risk by generating short-lived, on-demand credentials.
++ Encryption as a Service: App-level crypto without exposing keys to apps.
++ Centralized Policy Engine: Sophisticated identity-based access control.
++ Identity Agnostic: Auth via K8s, IAM roles, LDAP, OIDC, or GitHub.
+
+CONS:
+- High Operational Complexity: Self-hosting requires expertise in HA and DR.
+- High Cost: Managed clusters start at ~$360.00/month (base overhead).
+- Single Point of Failure: Centralizes all secrets; highly critical component.
+- Performance Overhead: Retrieving secrets adds latency to application logic.
+- Cost: Enterprise features often carry significant licensing or SaaS fees.
+
+2.3 SoftHSMv2 (Now Depreciated for Production)
+-----------------------------------------------
+
+Description:
+- Open-source implementation of a cryptographic store providing PKCS#11.
+- Pros: Free, portable, and well-understood for development.
+- Cons: Keys are stored as files on the host filesystem, failing to meet
+  the "high-security safe place" requirement for production.
+
+================================================================================
+3. SIDE-BY-SIDE COMPARISON: CLOUD KMS VS. SECRETS MANAGEMENT
+================================================================================
+
+| Feature              | Cloud KMS                    | Secrets Management        |
+|----------------------|------------------------------|---------------------------|
+| Infrastructure       | Managed (Provider)           | Self-hosted or SaaS       |
+| Key Scope            | Cryptographic Keys Only      | All secrets (Keys, PWs)   |
+| Multi-Cloud Support  | No (Provider Specific)       | Yes (Cloud Agnostic)      |
+| Dynamic Credentials  | No                           | Yes                       |
+| Operational Effort   | Low                          | High                      |
+| Primary Interface    | REST API / PKCS#11 Provider  | Unified API / CLI         |
+
+--------------------------------------------------------------------------------
+3.1 CLOUD KMS PROVIDER COMPARISON
+--------------------------------------------------------------------------------
+
+| Feature             | Google Cloud KMS           | AWS KMS                   | Azure Managed HSM         |
+|---------------------|----------------------------|---------------------------|---------------------------|
+| PKCS#11 Bridge      | Cloud KMS PKCS#11 (OSS)    | AWS KMS PKCS#11 (Official)| Managed HSM Library       |
+| Security Level      | FIPS 140-2 Level 3         | FIPS 140-2 Level 2        | FIPS 140-2 Level 3        |
+| Setup Effort        | Low (Open Source)          | Low (Official Library)    | High (Dedicated Instance) |
+| Base Monthly Cost   | ~$1.00 / key               | ~$1.00 / key              | ~$2,300.00 / pool         |
+
+================================================================================
+4. ANALYSIS AND RECOMMENDATION
+================================================================================
+
+Based on the production-ready requirements and the narrow focus on
+cryptographic key storage, **Google Cloud KMS is the recommended software HSM
+solution.**
+
+Justification:
+1. Cost Superiority: At ~$1.00/key/month with extremely low transaction fees,
+   it is the most cost-effective production-grade solution.
+2. Production Grade: Provides HSM-backed keys with FIPS 140-2 Level 3 security
+   in the cloud, fulfilling the "safe place" requirement.
+3. PKCS#11-Based: It integrates directly into the TI SoC software stack via the
+   mature and open-source `libgoogle-kms-pkcs11.so`.
+4. Software-Defined: Meets the requirement for a software-defined service,
+   providing high security without requiring local physical hardware (TPM/HSM)
+   on the board.
+
+CONCLUSION:
+For the production deployment of the TI SoC project, **Google Cloud KMS**
+is the most appropriate, flexible, and cost-effective software HSM solution.

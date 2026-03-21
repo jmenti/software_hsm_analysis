@@ -1,9 +1,9 @@
-# Software HSM Analysis: Production-Ready Solution for TI SoC
+# Software HSM Analysis: Solution for TI SoC Development
 
 This repository evaluates software-based Hardware Security Modules (HSMs) for
-production deployment on Texas Instruments SoC platforms. The analysis
-focuses on high-security software-defined key storage and management
-solutions that provide a standard PKCS#11 interface.
+development and testing on Texas Instruments SoC platforms. The analysis
+focuses on software-defined key storage and management solutions that provide
+a standard PKCS#11 interface.
 
 ## Table of Contents
 
@@ -41,7 +41,7 @@ solutions that provide a standard PKCS#11 interface.
   - 2.6 Multi-Cloud Portability
 - **3. DECISION FACTORS**
 
-### 3-Recommended Software HSM for TI SoC Production
+### 3-Recommended Software HSM for TI SoC Development
 - **1. USER REQUIREMENTS**
 - **2. PKCS#11-BASED SOFTWARE HSM SOLUTIONS**
   - 2.1 SoftHSMv2
@@ -103,7 +103,7 @@ solutions that provide a standard PKCS#11 interface.
   - 6.4 Limitations of PKCS#11
   - 6.5 Learning Resources
 
-### 5-Understanding SoftHSMv2 (DEPRECATED)
+### 5-Understanding SoftHSMv2
 - **1. WHAT IS SOFTHSMV2?**
 - **2. SOFTHSMV2 ORIGINS**
   - 2.1 Age and History

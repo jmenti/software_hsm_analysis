@@ -1,0 +1,95 @@
+################################################################################
+UNDERSTANDING BINMAN SIGNING
+Deep Dive into TI K3 / AM62x Secure Boot Flow
+################################################################################
+
+================================================================================
+1. INTRODUCTION TO BINMAN ARCHITECTURE
+================================================================================
+
+Binman is the primary packaging tool used in U-Boot to assemble multiple
+binaries (SPL, U-Boot, ATF, OP-TEE, Firmwares) into a single flashable image
+(e.g., tiboot3.bin, tispl.bin). For TI K3 devices like the AM62x, binman also
+manages the cryptographic signing required by the ROM and System Firmware.
+
+The signing flow follows a hierarchical chain:
+DTS (Config) -> Entry Type (Logic) -> Bintool (Execution) -> OpenSSL (Tool)
+
+================================================================================
+2. KEY SOURCE FILES AND DIRECTORY MAP
+================================================================================
+
+2.1 Configuration (The "What")
+-------------------------------
+These files define which binaries are packaged and which keys are used.
+- Location: u-boot/ti-u-boot/arch/arm/dts/k3-am625-sk-binman.dtsi
+- Key Property: 'keyfile = "custMpk.pem";' inside signing nodes.
+
+2.2 Entry Types (The "How")
+----------------------------
+These Python scripts define the logic for TI-specific certificates.
+- Location: u-boot/ti-u-boot/tools/binman/etype/
+- ti_secure.py: Logic for general blobs (ATF, OP-TEE, SPL).
+- ti_secure_rom.py: Logic for ROM bootloader images (tiboot3.bin).
+- x509_cert.py: Base class for X.509 certificate generation.
+
+2.3 Bintools (The "Execution")
+-------------------------------
+The wrapper that calls the actual system 'openssl' binary.
+- Location: u-boot/ti-u-boot/tools/binman/btool/openssl.py
+- Key Function: 'run_cmd' builds the command line for openssl.
+
+================================================================================
+3. THE SIGNING WORKFLOW STEP-BY-STEP
+================================================================================
+
+1. DTS Parsing:
+   Binman reads the .dtsi and identifies a signing node (e.g., ti-secure-rom).
+   It extracts the 'keyfile' property (currently a filename).
+
+2. Data Collection:
+   Binman gathers the binaries listed in the 'content' property (e.g.,
+   u-boot-spl.bin).
+
+3. Config Generation:
+   The entry type (ti_secure.py) generates a temporary OpenSSL configuration
+   file. This file contains TI-specific OIDs that the TI ROM/TIFS expect,
+   such as software revision and image integrity hashes.
+
+4. Bintool Call:
+   The entry type calls the openssl bintool method (e.g., x509_cert_sysfw).
+
+5. OpenSSL Execution:
+   The openssl.py bintool executes the system command:
+   $ openssl req -new -x509 -key [keyfile] -nodes -outform DER -config [cfg]
+
+6. Assembly:
+   Binman prepends the resulting certificate to the binary data to create the
+   final signed image.
+
+================================================================================
+4. SOFTHSM INTEGRATION STRATEGY
+================================================================================
+
+Because binman uses a central bintool (openssl.py) for all signing operations,
+enabling HSM support is a surgical change to that single file.
+
+By modifying openssl.py to detect a 'pkcs11:' prefix in the 'keyfile' string,
+we can force openssl to use the engine:
+
+Patched Command Logic:
+$ openssl req -engine pkcs11 -keyform engine -key "pkcs11:..." [rest of args]
+
+================================================================================
+5. RELEVANT DOCUMENTATION AND RESOURCES
+================================================================================
+
+5.1 Internal U-Boot Documentation
+----------------------------------
+- u-boot/ti-u-boot/doc/develop/package/binman.rst: General binman guide.
+- u-boot/ti-u-boot/tools/binman/binman.py: Tool entry point (--help).
+
+5.2 External TI Resources
+--------------------------
+- TI K3 Boot Flow: https://software-dl.ti.com/tisci/esd/latest/2_tisci_msgs/security/sig_verification.html
+- AM62x U-Boot Guide: https://docs.u-boot.org/en/latest/board/ti/am62x_sk.html
