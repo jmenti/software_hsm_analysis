@@ -93,3 +93,107 @@ $ openssl req -engine pkcs11 -keyform engine -key "pkcs11:..." [rest of args]
 --------------------------
 - TI K3 Boot Flow: https://software-dl.ti.com/tisci/esd/latest/2_tisci_msgs/security/sig_verification.html
 - AM62x U-Boot Guide: https://docs.u-boot.org/en/latest/board/ti/am62x_sk.html
+
+================================================================================
+6. CORE DEFINITIONS AND CLARIFICATIONS
+================================================================================
+
+6.1 Entry Type (The "Plugin" or "Template")
+--------------------------------------------
+In Binman, an Entry Type is a Python class (located in `etype/`) that defines 
+how a specific piece of data should be processed and packaged. 
+- While standard entry types might just place a binary at an offset, TI-specific 
+  entry types (like `ti_secure.py`) act as advanced templates.
+- They contain the logic to calculate hashes, generate OpenSSL configurations, 
+  and trigger the signing process before the final image assembly.
+
+6.2 OID (Object Identifier)
+----------------------------
+An OID is a standardized, globally unique numerical string used to identify 
+specific data fields within a digital certificate (e.g., `1.3.6.1.4.1.294.1.3`).
+- TI uses custom OIDs to embed non-standard security metadata that the TI Boot 
+  ROM/TIFS requires.
+- Embedded Data Includes: Image integrity hashes, software revision numbers 
+  (to prevent rollback attacks), and Security Core IDs.
+- These OIDs allow the TI hardware to locate and verify security parameters 
+  during the power-on boot sequence.
+
+6.3 Bintool Call (Manager-to-Worker Delegation)
+------------------------------------------------
+This represents the delegation of execution from the Entry Type (the "Manager") 
+to the Bintool (the "Worker").
+- The Entry Type knows *what* security data is required but does not interact 
+  directly with the system shell.
+- Instead, it "calls" a method in the `openssl.py` bintool, passing it the 
+  necessary file paths and TI-specific parameters.
+- The Bintool is the wrapper responsible for constructing the final command 
+  string and executing the `openssl` binary on the host system.
+- This architectural split allows for centralized HSM integration; by patching 
+  the `openssl.py` bintool, we enable HSM support for all entry types that 
+  utilize it.
+
+6.4 The OpenSSL System Tool
+----------------------------
+The "OpenSSL (System Tool)" is a standard cryptographic utility installed on 
+the host Linux system (typically `/usr/bin/openssl`).
+- It is NOT part of the U-Boot source tree.
+- Binman relies on the host's version of OpenSSL to perform all RSA/ECC 
+  signing operations.
+- By configuring the host's OpenSSL to use the `pkcs11` engine, we can 
+  transparently redirect signing requests from Binman to SoftHSM.
+
+================================================================================
+7. FUNCTIONAL CALL STACK MAPS
+================================================================================
+
+7.1 tiboot3.bin (ROM-Signed HS Image)
+--------------------------------------
+This image is the first to boot and is verified by the hardware Boot ROM.
+
++------+---------------------------+---------------------------------------------+------------------------------+------------------------------------------------------+
+| Step | Component / File          | Functional Call & Parameters                | Output / Intermediate        | Notes                                                |
++------+---------------------------+---------------------------------------------+------------------------------+------------------------------------------------------+
+| 1    | k3-am625-sk-binman.dtsi   | Binman Parser (Reads ti-secure-rom node)    | self._node (DTS Object)      | PHASE: CONFIG. Identifies keyfile and targets.       |
++------+---------------------------+---------------------------------------------+------------------------------+------------------------------------------------------+
+| 2    | ti_secure_rom.py          | ObtainContents() -> GetCertificate('rom')   | True / False                 | PHASE: LOGIC. Starts TI-specific ROM signing.        |
++------+---------------------------+---------------------------------------------+------------------------------+------------------------------------------------------+
+| 3    | x509_cert.py              | GetContents(required=True)                  | input_data (Raw SPL Bytes)   | PHASE: DATA. Pulls u-boot-spl.bin into memory.       |
++------+---------------------------+---------------------------------------------+------------------------------+------------------------------------------------------+
+| 4    | u-boot-spl.bin            | tools.write_file('input.tiboot3...', data)  | input.tiboot3... (Disk File) | STAGING: Temporary copy of SPL for OpenSSL.          |
++------+---------------------------+---------------------------------------------+------------------------------+------------------------------------------------------+
+| 5    | openssl.py                | x509_cert_rom(input, config, ...)           | config.tiboot3... (Disk File)| TI OID GEN: Calculates SHA512 and writes config.     |
++------+---------------------------+---------------------------------------------+------------------------------+------------------------------------------------------+
+| 6    | openssl.py                | self.run_cmd('req', '-new', ..., key_fname) | Shell Command String         | EXECUTION PREP: This is our SoftHSM injection point. |
++------+---------------------------+---------------------------------------------+------------------------------+------------------------------------------------------+
+| 7    | openssl (System Tool)     | openssl req ... -config config.tiboot3...   | cert.tiboot3... (Disk File)  | CRYPTO: Actual OpenSSL runs and creates certificate. |
++------+---------------------------+---------------------------------------------+------------------------------+------------------------------------------------------+
+| 8    | ti_secure_rom.py          | SetContents(cert_data)                      | self.data (Updated Entry)    | INTEGRATION: Certificate assigned to entry.          |
++------+---------------------------+---------------------------------------------+------------------------------+------------------------------------------------------+
+| 9    | Binman Core               | [cert.tiboot3...] + [u-boot-spl.bin]        | tiboot3.bin (Final Binary)   | ASSEMBLY: Glues cert to SPL front.                   |
++------+---------------------------+---------------------------------------------+------------------------------+------------------------------------------------------+
+
+7.2 tispl.bin and u-boot.img (System Firmware Signed)
+------------------------------------------------------
+These images contain the second stage bootloader and are verified by TIFS/SYSFW.
+
++------+---------------------------+---------------------------------------------+------------------------------+------------------------------------------------------+
+| Step | Component / File          | Functional Call & Parameters                | Output / Intermediate        | Notes                                                |
++------+---------------------------+---------------------------------------------+------------------------------+------------------------------------------------------+
+| 1    | k3-am625-sk-binman.dtsi   | Binman Parser (Reads ti-secure node)        | self._node (DTS Object)      | PHASE: CONFIG. Defines auth-in-place and key.        |
++------+---------------------------+---------------------------------------------+------------------------------+------------------------------------------------------+
+| 2    | ti_secure.py              | ObtainContents() -> GetCertificate('sysfw') | True / False                 | PHASE: LOGIC. Starts TIFS signing flow.              |
++------+---------------------------+---------------------------------------------+------------------------------+------------------------------------------------------+
+| 3    | x509_cert.py              | GetContents(required=True)                  | input_data (Raw Binary)      | PHASE: DATA. Pulls ATF/OP-TEE/U-Boot into memory.    |
++------+---------------------------+---------------------------------------------+------------------------------+------------------------------------------------------+
+| 4    | Component Binaries        | tools.write_file('input.tispl...', data)    | input.tispl... (Disk File)   | STAGING: Temporary copy of binary for OpenSSL.       |
++------+---------------------------+---------------------------------------------+------------------------------+------------------------------------------------------+
+| 5    | openssl.py                | x509_cert_sysfw(input, config, ...)         | config.tispl... (Disk File)  | TIFS OID GEN: Embeds SHA512 and firewall config.     |
++------+---------------------------+---------------------------------------------+------------------------------+------------------------------------------------------+
+| 6    | openssl.py                | self.run_cmd('req', '-new', ..., key_fname) | Shell Command String         | EXECUTION PREP: Shared SoftHSM injection point.      |
++------+---------------------------+---------------------------------------------+------------------------------+------------------------------------------------------+
+| 7    | openssl (System Tool)     | openssl req ... -config config.tispl...     | cert.tispl... (Disk File)    | CRYPTO: OpenSSL signs using TIFS-specific profile.   |
++------+---------------------------+---------------------------------------------+------------------------------+------------------------------------------------------+
+| 8    | ti_secure.py              | SetContents(cert_data)                      | self.data (Updated Entry)    | INTEGRATION: Certificate assigned to entry.          |
++------+---------------------------+---------------------------------------------+------------------------------+------------------------------------------------------+
+| 9    | Binman Core               | [cert.tispl...] + [binary]                  | tispl.bin / u-boot.img       | ASSEMBLY: Prepends cert for System Firmware.         |
++------+---------------------------+---------------------------------------------+------------------------------+------------------------------------------------------+

@@ -1,0 +1,247 @@
+################################################################################
+BINMAN DEEP DIVE: TI K3 / AM62x SECURE BOOT ARCHITECTURE
+Comprehensive Technical Reference
+################################################################################
+
+================================================================================
+1. ARCHITECTURAL OVERVIEW
+================================================================================
+
+Binman is U-Boot's primary image packaging and signing tool. For Texas 
+Instruments K3 devices (like the AM62x), Binman acts as the "Orchestrator" that 
+assembles multiple binaries (SPL, ATF, OP-TEE, Firmwares) into single, signed 
+bootable images (tiboot3.bin, tispl.bin, u-boot.img).
+
+The functional chain is:
+DTS (Config) -> Entry Type (Logic) -> Bintool (Execution) -> OpenSSL (Tool)
+
+================================================================================
+2. KEY COMPONENTS & RESPONSIBILITIES
+================================================================================
+
+2.1 The Configuration Layer (Device Tree)
+- File: arch/arm/dts/k3-am625-sk-binman.dtsi
+- Role: Defines properties like 'keyfile', 'sw-rev', 'load' addresses, and 
+  'firewall' nodes.
+- Legacy Mode: 'keyfile = "custMpk.pem";' (Uses local file).
+- Secure Mode: 'keyfile = "pkcs11:token=...;object=...";' (Uses SoftHSM URI).
+
+2.2 The Logic Layer (Entry Types)
+- Scripts: tools/binman/etype/ti_secure.py and ti_secure_rom.py
+- Role: Translates human-readable DTS properties into technical dictionaries 
+  (boot_ext_data, load_ext_data, firewall_cert_data). 
+- Mapping: Converts strings like "secure" to hardware IDs (e.g., Core ID 16).
+
+2.3 The Execution Layer (Bintool)
+- Script: tools/binman/btool/openssl.py
+- Role: A Python wrapper that constructs and executes the system 'openssl' 
+  command. It generates the temporary X.509 configuration files that contain 
+  the TI-specific security OIDs.
+
+================================================================================
+3. SIGNING FUNCTIONS & CONFIGURATION SECTIONS
+================================================================================
+
+Binman uses four distinct functions in openssl.py to handle different stages of 
+the AM62x boot process. Each function generates a specific OpenSSL template.
+
+3.1 Common Template Sections (Global)
+- [ req ]: The global header. Tells OpenSSL to create a certificate request 
+  and sets the pointer for custom TI extensions (v3_ca).
+- [ req_distinguished_name ]: The certificate identity (C, ST, L, O, OU, CN). 
+  TIFS requires a full identity, while ROM only requires a Common Name (CN).
+- [ v3_ca ]: The "Address Book" for TI-specific OIDs. Links the certificate 
+  metadata to the specialized data sections below.
+
+3.2 x509_cert (Generic)
+- Use Case: Internal security stubs (e.g., tifsstub.bin_hs).
+- [ swrv ]: Software Revision (Anti-rollback version).
+- [ sysfw_image_integrity ]: SHA-512 fingerprint and exact image size.
+
+3.3 x509_cert_rom (Early Stage - tiboot3.bin)
+- Use Case: Verified by Hardware Boot ROM (Silicon logic).
+- [ boot_seq ]: The "Jump Start" instructions. Defines the initial CPU Core 
+  (R5 = 16), Mode (Lockstep = 0), and initial RAM Load Address (0x43c00000).
+- [ image_integrity ]: The hardware fingerprint for the R5 SPL code.
+- [ debug ]: The JTAG Lock. Controls whether the hardware debugger is unlocked 
+  (Type 4) or permanently locked (Type 0) after authentication.
+
+3.4 x509_cert_sysfw (Later Stages / OS - tispl.bin)
+- Use Case: Verified by System Firmware (TIFS / Security Controller).
+- [ sysfw_boot_seq ]: Defines which core to wake up (e.g., A53) and its 
+  Reset Vector (The "Start Line" for the CPU).
+- [ sysfw_image_load ]: The "Shipping Label". Defines where TIFS should copy 
+  the binary or if it should verify it in-place (Authorize In Place).
+- [ firewall ]: The "Security Guard". Defines memory access rules (ACLs) to 
+  protect the binary from other compromised cores.
+
+3.5 x509_cert_rom_combined (Modern Combined Flow - tiboot3.bin)
+- Use Case: AM62x Standard. SPL, TIFS, and DM in one file.
+- [ ext_boot_info ]: The "Master Manifest". Lists the total image size and 
+  the number of sub-components (boxes) inside the image.
+- [ sbl ], [ sysfw ], [ sysfw_data ]: Individual component metadata. Each 
+  has its own ID, Core target, Load Address, and SHA-512 Fingerprint.
+- [ debug ]: Same JTAG controls as the ROM function, but applied to the entire 
+  combined image.
+
+================================================================================
+4. STANDARD VS. HSM IMPLEMENTATION (PKCS#11)
+================================================================================
+
+4.1 Comparison Table
+| Feature | Standard Implementation | Your SoftHSM Implementation |
+| :--- | :--- | :--- |
+| Key Storage | Plaintext .pem File | Encrypted SoftHSM Vault |
+| Standard | None (Filesystem) | PKCS#11 (RFC 7512 URI) |
+| Security | Low (Key is exposed) | High (Key is isolated) |
+| Migratable | No (Manual rewrite) | Yes (Change URI only) |
+
+4.2 Why PKCS#11?
+Your implementation uses the PKCS#11 standard because:
+1. Key Isolation: The Private Key never touches the filesystem; signing 
+   happens inside the HSM's secure memory boundary.
+2. Compliance: PKCS#11 is the global industry standard for HSMs.
+3. Portability: By using RFC 7512 URIs, you can switch from SoftHSM to any 
+   Enterprise HSM by simply changing the URI string in the Device Tree.
+
+4.3 URI Parameter Definitions (RFC 7512)
+Format: pkcs11:token=TOKEN_LABEL;object=KEY_LABEL;type=private
+
+- pkcs11:      Prefix that triggers the OpenSSL PKCS#11 engine.
+- token=       The name of the initialized SoftHSM vault.
+- object=      The label of the Private Key inside the vault.
+- type=        Object kind (usually 'private' for signing).
+- pin-value=   The User PIN used to unlock the token.
+- pin-source=  A path to a file containing the PIN (More secure).
+- model=       The model of the HSM (e.g., 'SoftHSM v2').
+- manufacturer= The manufacturer (e.g., 'SoftHSM project').
+- serial=      The unique serial number of the SoftHSM token.
+
+4.4 The Patch Logic (The "Helper Method")
+Binman is updated with an "OR" logic to support both file and HSM modes:
+
+```python
+def _run_openssl_req(self, cert_fname, key_fname, config_fname):
+    args = ['req', '-new', '-x509']
+    if key_fname.startswith('pkcs11:'):
+        # HSM Mode: Add engine flags
+        args += ['-engine', 'pkcs11', '-keyform', 'engine']
+    # Final command: openssl req ... -key [key_fname] ...
+    args += ['-key', key_fname, '-nodes', '-outform', 'DER', ...]
+    return self.run_cmd(*args)
+```
+
+================================================================================
+5. IMPLEMENTATION STEPS (THE WORKFLOW)
+================================================================================
+
+5.1 SoftHSM Environment Setup
+Perform these one-time steps on your development host:
+
+```bash
+# 1. Initialize the SoftHSM Token
+softhsm2-util --init-token --slot 0 --label "TI_AM62x_Keys" --pin 1234 --so-pin 5678
+
+# 2. Generate the RSA-2048 Private Signing Key
+pkcs11-tool --module /usr/lib/softhsm/libsofthsm2.so --login --pin 1234 \
+            --keypairgen --key-type RSA:2048 --label "custMpk"
+```
+
+5.2 Device Tree Configuration
+Update the key references in 'arch/arm/dts/k3-am625-sk-binman.dtsi' to point to 
+the SoftHSM vault:
+
+```dts
+keyfile = "pkcs11:token=TI_AM62x_Keys;object=custMpk;type=private;pin-value=1234";
+```
+
+5.3 OpenSSL Engine Configuration
+Ensure your host's '/etc/ssl/openssl.cnf' includes the PKCS#11 engine section 
+to bridge OpenSSL to the SoftHSM library.
+
+================================================================================
+6. SECURITY CONCEPTS: THE HARDWARE LOCK
+================================================================================
+
+6.1 The Role of Keys
+- Private Key (The "Signer"): Stays in the SoftHSM. Used during 'make' build.
+- Public Key (The "Validator"): Embedded in the certificate. Checked by the 
+  chip at boot time.
+
+6.2 The "Two Homes" of the Public Key
+The Public Key is stored in two locations to ensure absolute root-of-trust:
+- Home 1 (Silicon): A SHA-512 Hash is permanently burned into eFuses. 
+  It acts as the "Master Record" to recognize the official owner.
+- Home 2 (Certificate): The full 2048-bit Public Key is embedded in the 
+  signed image. This provides the hardware with the tools it needs to 
+  perform the math to verify the signature.
+
+6.3 eFuses (Hash and Blow)
+- The chip doesn't store the key; it stores a Hash of the public key.
+- Once the HS-SE (Security Enforced) fuse is blown, the chip is "married" to 
+  the key. Only code signed by the SoftHSM private key will ever boot.
+
+6.4 Hardware Lifecycle: HS-FS vs. HS-SE
+- HS-FS (Field Securable): The development state. Fuses are empty. The board 
+  boots any code but can be "blown" to a locked state.
+- HS-SE (Security Enforced): The production state. Fuses are blown. The 
+  hardware-enforced security rejects any unsigned or incorrectly signed code.
+
+6.5 The "Chicken and Egg" Hash Problem
+- Binman hashes the raw code (u-boot-spl.bin), NOT the final tiboot3.bin.
+- The certificate is "glued" (prepended) to the front of the code.
+- The Boot ROM verifies the signature, then "skips" the certificate to hash 
+  the code and compare it to the value inside the certificate.
+
+================================================================================
+7. TI-SPECIFIC OID REFERENCE (THE "SECRET INSTRUCTIONS")
+================================================================================
+
+OID                     | Name              | Purpose
+-----------------------|-------------------|------------------------------------
+1.3.6.1.4.1.294.1.1    | Boot Sequence     | Which Core/Address to start at.
+1.3.6.1.4.1.294.1.2    | Image Integrity   | SHA-512 Hash of the binary.
+1.3.6.1.4.1.294.1.3    | SWRV              | Anti-rollback version number.
+1.3.6.1.4.1.294.1.9    | Manifest Info     | Combined Image Table of Contents.
+1.3.6.1.4.1.294.1.34   | Integrity (TIFS)  | SHA-512 Hash for System Firmware.
+1.3.6.1.4.1.294.1.35   | Load Address      | RAM destination for the image.
+1.3.6.1.4.1.294.1.37   | Firewall          | Memory protection rules.
+1.3.6.1.4.1.294.1.8    | Debug Control     | JTAG Lock/Unlock status.
+
+================================================================================
+8. DEVELOPMENT & IMPLEMENTATION NUANCES
+================================================================================
+
+8.1 Whitespace Sensitivity (Misalignment)
+- OpenSSL configuration sections (like '[ req ]') MUST start at Column 0.
+- Binman uses left-aligned Python multiline strings (f'''...''') to ensure 
+  the temporary file on disk has zero leading spaces. This prevents fatal 
+  OpenSSL parsing errors during the build.
+
+8.2 Property Mapping & Defaulting Logic
+- Defaulting: If a property like 'core = "secure"' is missing from the 
+  Device Tree, Binman's Python logic (ti_secure_rom.py) automatically 
+  defaults it to "secure".
+- Translation: Binman translates human-friendly strings (like "secure") 
+  into hardware-level integers (like Core ID 16 for R5 cores).
+- Mapping: Device Tree properties like 'load' are mapped to certificate-
+  specific technical names like 'destAddr' during the certificate generation.
+
+================================================================================
+9. ADVANCED CONFIGURATION (FUTURE PROOFING)
+================================================================================
+
+9.1 Encryption Template (Disabled)
+The 'openssl.py' script contains a commented-out '[ encryption ]' section. 
+While currently unused in the AM62x development flow, it provides the 
+infrastructure for AES image encryption. Implementing this would require 
+uncommenting OID 1.3.6.1.4.1.294.1.4 and providing matching AES keys in 
+the hardware fuses.
+
+9.2 Firewall Templates (k3-binman.dtsi)
+Firewall nodes in the Device Tree (e.g., 'firewall-1-0') leverage templates 
+defined in 'arch/arm/dts/k3-binman.dtsi'. These templates (like 
+'firewall_armv8_atf_fg') define the "Isolation Perimeter" that the System 
+Firmware (TIFS) enforces to protect sensitive secure-world code (ATF/OP-TEE) 
+from other system components.
+################################################################################
